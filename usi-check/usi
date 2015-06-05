@@ -1,0 +1,51 @@
+#!/bin/bash
+
+GPGPASSWDFILE="${HOME}/.gnupg/support.pw"
+
+ARCHIVE=$1
+if [ -z "$ARCHIVE" ]; then
+	ARCHIVE="$(ls univention-support-info-*.tar.bz2 univention-support-info-*.tar.bz2.gpg upload_*.bz2 upload_*.asc upload_*.bin 2>/dev/null)"
+fi
+
+for A in $ARCHIVE; do
+	if [ -r "$A" ]; then
+		GPGA=""
+		case $A in
+			*.gpg)
+				GPGA=$A
+				A="$(basename $GPGA .gpg).tar.bz2"
+				;;
+			*.asc)
+				GPGA=$A
+				A="$(basename $GPGA .asc).tar.bz2"
+				;;
+			*.bin)
+				GPGA=$A
+				A="$(basename $GPGA .bin).tar.bz2"
+				;;
+		esac
+		# decrypt gpg file
+		if [ -n "$GPGA" ]; then
+			if [ ! -r $GPGPASSWDFILE ]; then
+				echo "Archive is encrypted but no password file was found!"
+				echo "Please add a file \"$GPGPASSWDFILE\" containing the passphrase for the support gpg key"
+				exit 1
+			fi
+			gpg --no-use-agent --passphrase-file $GPGPASSWDFILE -d $GPGA > $A
+			if [ $? -eq 0 ]; then
+				rm $GPGA
+			fi
+		fi
+		# extract archive
+		usiname="$(tar -tf $A | head -1 | cut -d"/" -f1)"
+		tar -xjf $A
+		if [ $? -eq 0 -a -z "$GPGA" ]; then
+			# delete archive
+			rm $A
+		elif [ $? -eq 0 -a -n "$GPGA" ]; then
+			# don't delete archive if it was encrypted
+			mv "$A" "decrypted_${A}"
+		fi
+		usi-check -u "$(pwd)""/"$usiname
+	fi
+done
