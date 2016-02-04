@@ -9,7 +9,7 @@ ucr = UCR(sys.argv[1])
 RETURN=[]
 
 if ucr.get('kerberos/realm').lower() != ucr.get('domainname').lower():
-		RETURN.append('CRITICAL: Kerberos realm and DNS domainname does not match')
+		RETURN.append('CRITICAL: Kerberos realm \'%s\' and DNS domainname \'%s\' does not match' % (ucr.get('kerberos/realm'), ucr.get('domainname')))
 
 if RETURN:
 	for line in RETURN:
