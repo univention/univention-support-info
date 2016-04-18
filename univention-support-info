@@ -245,13 +245,15 @@ def certificateValidities():
 	print 'done.'
 
 def simpleFiles():
+    #add S4-Connector Mapping (BUG 40571)
+    #/boot/config-*, /etc/crontab, /var/spool/cron/**, removed and add /proc/modules (BUG 35075)
 	FilePatterns = [
-		'/boot/config-*',
 		'/etc/apache2/*',
 		'/etc/apache2/*/*',
 		'/etc/apt/*',
 		'/etc/apt/*/*',
 		'/etc/cron*/*',
+		'/etc/crontab',
 		'/etc/fstab',
 		'/etc/imapd/*',
 		'/etc/mtab',
@@ -259,6 +261,8 @@ def simpleFiles():
 		'/etc/procmailrc',
 		'/etc/spamassassin/*',
 		'/etc/univention/connector/ad/mapping.py',
+		'/etc/univention/connector/s4/mapping.py',
+		'/etc/univention/connector/s4/mapping',
 		'/etc/univention/installation_profile',
 		'/etc/ox-secrets/*',
 		'/opt/open-xchange/etc/*',
@@ -266,9 +270,11 @@ def simpleFiles():
 		'/opt/open-xchange/etc/*/*/*',
 		'/proc/mounts*',
 		'/proc/mdstat',
+                '/proc/modules',
 		'/proc/drbd',
 		'/proc/cmdline',
 		'/var/lib/univention-directory-replication/failed.ldif',
+		'/var/spool/cron/**',
 		'/etc/postfix/*',
 		'/etc/imapd/*',
 		'/var/univention-backup/ad-takeover/*',
@@ -399,6 +405,7 @@ def templateFiles():
 	print 'done.'
 
 def collectCommandData():
+    #add pvdisplay,vgdisplay,lvdisplay (BUG 35075)
 	commands = {'hostname-f':
 					('hostname', '--fqdn', ),
 				'ifconfig-a':
@@ -445,6 +452,12 @@ def collectCommandData():
 					('virsh', '-c', 'qemu:///system', 'capabilities', ),
 				'virsh-xen':
 					('virsh', '-c', 'xen:///',		'capabilities', ),
+                                'pvdisplay':
+                                        ('pvdisplay',),
+                                'vgdisplay':
+                                        ('vgdisplay',),
+                                'lvdisplay':
+                                        ('lvdisplay',),
 				'top':
 					('top', '-b', '-n2', ),
 				'testparm':
