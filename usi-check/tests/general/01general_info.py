@@ -15,6 +15,10 @@ RETURN.append("Server Rolle: %s" % (ucr.get('server/role')))
 if (ucr.get('samba/role') != "" and ucr.get('samba/role') != None):
   RETURN.append("Samba Rolle:  %s" % (ucr.get('samba/role')))
 
+#if samba4 is running display samba role
+if (ucr.get('samba4/role') != "" and ucr.get('samba4/role') != None):
+  RETURN.append("Samba4 Rolle: %s" % (ucr.get('samba4/role')))
+
 if RETURN:
 	for line in RETURN:
 		print line
