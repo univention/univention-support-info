@@ -188,7 +188,10 @@ def addFile(name, size, fileobj):
 	info.name = 'univention-support-info-' + hostname + '-' + timeString + '/' + name
 	info.mode = stat.S_IRUSR
 	info.mtime = time.time()
-	archive.addfile(info, fileobj)
+        try:
+                archive.addfile(info, fileobj)
+        except IOError, ex:
+                print 'WARNING: failed to add %r: error=%r' % (fileobj, ex)
 
 def addFileByPath(filename):
 	if filename.startswith('/proc/'):
@@ -270,10 +273,11 @@ def simpleFiles():
 		'/opt/open-xchange/etc/*/*/*',
 		'/proc/mounts*',
 		'/proc/mdstat',
-                '/proc/modules',
+		'/proc/modules',
 		'/proc/drbd',
 		'/proc/cmdline',
 		'/var/lib/univention-directory-replication/failed.ldif',
+		'/var/lib/univention-connector/s4/*',
 		'/var/spool/cron/**',
 		'/etc/postfix/*',
 		'/etc/imapd/*',
@@ -281,6 +285,7 @@ def simpleFiles():
 		'/etc/*/local.conf*',
 		'/root/.bash_history',
 		'/var/log/installer/*',
+		'/var/log/zarafa/*',
 		'/etc/ldap/slapd.conf',
 		]
 	FileExcludePatterns = [ '/etc/apache2/mods-available/*', '/etc/apache2/sites-available/*' ]
@@ -402,6 +407,25 @@ def templateFiles():
 		elif templatefile.endswith('.dpkg-dist'):
 			addFileByPath(templatefile[:-len('.dpkg-dist')])
 		_sprint('.')
+	print 'done.'
+
+def checkTransactionFile():
+	_sprint( 'Collecting output transaction-file-check: ' )
+	with open('/var/lib/univention-ldap/notify/transaction', 'r') as transaction:
+		lc = 1	
+		for line in transaction:	
+			line = line.strip().split(' ', 1)	
+			try:
+				cur_lc = int(line[0])	
+			except:	
+				check = 'ERROR at line %d: "%s"' % ( lc, ' '.join(line) )
+				addFile('info/transaction-file-check', len(check), cStringIO.StringIO(check))
+				break	
+			if cur_lc != lc:	
+				check = 'ERROR at line %d: "%s"' % ( lc, ' '.join(line) )	
+				addFile('info/transaction-file-check', len(check), cStringIO.StringIO(check))
+				break	
+			lc += 1
 	print 'done.'
 
 def collectCommandData():
@@ -592,6 +616,7 @@ def rotatedLogs():
 			'/var/log/univention/updater.log',
 			'/var/log/apt/term.log',
 			'/var/log/univention/ad-takeover.log',
+			'/var/log/univention/connector-s4.log',
 			))
 	GzipSuffix = '.gz'
 	logs = {}
@@ -817,6 +842,7 @@ def main(encrypt=False):
 	licenseObject()
 	templateFiles()
 	aptPackageList()
+	checkTransactionFile()
 	atJobs()
 	certificateValidities()
 	univentionSystemInfo()
