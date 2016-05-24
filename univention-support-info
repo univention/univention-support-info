@@ -121,6 +121,7 @@ import sys
 import tarfile
 import tempfile
 import time
+import urllib2
 from distutils.spawn import find_executable
 
 # ignore apt's "API not stable yet" warning
@@ -311,14 +312,24 @@ def licenseObject():
 	stdout = executeCommand( 'univention-license-object', (_ldapsearchCommand(), '-x' , '-b', 'cn=license,cn=univention,'+ucr.get('ldap/base')) )
 	addFile('info/univention-license-object', len(stdout), cStringIO.StringIO(stdout))
 
-	
 def checkMaintenance():
 	''' Check if UCS-Version is in maintenance '''
-	if ucr.get('version/version') <= '3.1' and ucr.get('server/role') != 'ucc':
+	ucs_ver = ucr.get('version/version') + '-' + ucr.get('version/patchlevel')
+	try:
+		maint_url = "http://updates.software-univention.de/download/ucs-maintenance/" + ucs_ver + ".yaml"
+		data = urllib2.urlopen(maint_url).read()
+		maint_info = dict((k.strip(), v.strip()) for k, v in (line.split(':', 1) for line in data.split("\n") if line))
+		if ucr.get('server/role') != 'ucc' and bool(maint_info['maintained'] in ['True', True, 'true', 'TRUE', 1, '1']) != True:
+			tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
+			print "\033[93mPlease note, system is no longer maintained, security updates are no longer available for current UCS Version %s\033[0m" % (ucs_ver)
+			print >> tmpf, "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucs_ver)
+			addFile( 'info/no_maintenance', None, tmpf )
+	except:
+		e = sys.exc_info()[0]
 		tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
-		print "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucr.get('version/version'))
-		print >> tmpf, "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucr.get('version/version'))
-		addFile( 'info/no_maintenance', None, tmpf )
+		print "WARNING: Could NOT determine product maintenance."
+		print >> tmpf, "Failed to check maintenance (%s)\ncurrent UCS Version %s" % (e, ucs_ver)
+		addFile( 'info/maintenance_check.failed', None, tmpf )
 
 def checkEntryUUID():
 	''' Check if ldap base is searchable by its entryUUID '''
