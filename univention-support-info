@@ -319,16 +319,15 @@ def checkMaintenance():
 		maint_url = "http://updates.software-univention.de/download/ucs-maintenance/" + ucs_ver + ".yaml"
 		data = urllib2.urlopen(maint_url).read()
 		maint_info = dict((k.strip(), v.strip()) for k, v in (line.split(':', 1) for line in data.split("\n") if line))
-		if ucr.get('server/role') != 'ucc' and bool(maint_info['maintained'] in ['True', True, 'true', 'TRUE', 1, '1']) != True:
+		if ((ucr.get('server/role') != 'ucc') and (maint_info['maintained'].lower() not in ['true', '1'])):
 			tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
 			print "\033[93mPlease note, system is no longer maintained, security updates are no longer available for current UCS Version %s\033[0m" % (ucs_ver)
 			print >> tmpf, "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucs_ver)
 			addFile( 'info/no_maintenance', None, tmpf )
-	except:
-		e = sys.exc_info()[0]
+	except urllib2.URLError as ex:
 		tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
-		print "WARNING: Could NOT determine product maintenance."
-		print >> tmpf, "Failed to check maintenance (%s)\ncurrent UCS Version %s" % (e, ucs_ver)
+		print "WARNING: Could NOT determine product maintenance. [%s]" % (ex)
+		print >> tmpf, "Failed to check maintenance (%s)\ncurrent UCS Version %s" % (ex, ucs_ver)
 		addFile( 'info/maintenance_check.failed', None, tmpf )
 
 def checkEntryUUID():
