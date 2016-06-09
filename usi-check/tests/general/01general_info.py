@@ -19,6 +19,12 @@ if (ucr.get('samba/role') != "" and ucr.get('samba/role') != None):
 if (ucr.get('samba4/role') != "" and ucr.get('samba4/role') != None):
   RETURN.append("Samba4 Rolle: %s" % (ucr.get('samba4/role')))
 
+#if no maintenance display the message
+fname = 'info/no_maintenance'
+if os.path.exists(fname):
+	with open(fname, 'r') as fsock:
+		RETURN.append("Maintenance Info: '%s'" % (fsock.read().strip()))
+
 if RETURN:
 	for line in RETURN:
 		print line
