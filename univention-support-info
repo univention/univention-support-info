@@ -265,6 +265,7 @@ def simpleFiles():
 		'/etc/procmailrc',
 		'/etc/spamassassin/*',
 		'/etc/univention/connector/ad/mapping.py',
+		'/etc/univention/connector/s4/mapping',
 		'/etc/univention/connector/s4/mapping.py',
 		'/etc/univention/connector/s4/mapping',
 		'/etc/univention/installation_profile',
@@ -277,6 +278,7 @@ def simpleFiles():
 		'/proc/modules',
 		'/proc/drbd',
 		'/proc/cmdline',
+		'/var/lib/univention-directory-listener/bad_cache',
 		'/var/lib/univention-directory-replication/failed.ldif',
 		'/var/lib/univention-connector/s4/*',
 		'/var/spool/cron/**',
@@ -314,21 +316,32 @@ def licenseObject():
 
 def checkMaintenance():
 	''' Check if UCS-Version is in maintenance '''
-	ucs_ver = ucr.get('version/version') + '-' + ucr.get('version/patchlevel')
-	try:
-		maint_url = "http://updates.software-univention.de/download/ucs-maintenance/" + ucs_ver + ".yaml"
-		data = urllib2.urlopen(maint_url).read()
-		maint_info = dict((k.strip(), v.strip()) for k, v in (line.split(':', 1) for line in data.split("\n") if line))
-		if ((ucr.get('server/role') != 'ucc') and (maint_info['maintained'].lower() not in ['true', '1'])):
+	if ucr.get('server/role') != 'ucc':
+		ucs_ver = ucr.get('version/version') + '-' + ucr.get('version/patchlevel')
+		try:
+			maint_url = "http://updates.software-univention.de/download/ucs-maintenance/" + ucs_ver + ".yaml"
+			data = urllib2.urlopen(maint_url).read()
+			maint_info = dict((k.strip(), v.strip()) for k, v in (line.split(':', 1) for line in data.split("\n") if line))
+			if maint_info['maintained'].lower() not in ['true', '1']:
+				tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
+				print "\033[93mPlease note, system is no longer maintained, security updates are no longer available for current UCS Version %s\033[0m" % (ucs_ver)
+				print >> tmpf, "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucs_ver)
+				addFile( 'info/maintenance', None, tmpf )
+			else:
+				tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
+				print >> tmpf, "maintenance ok\ncurrent UCS Version %s" % (ucs_ver)
+				addFile( 'info/maintenance', None, tmpf )
+		except (urllib2.URLError, IOError) as innerex:
 			tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
-			print "\033[93mPlease note, system is no longer maintained, security updates are no longer available for current UCS Version %s\033[0m" % (ucs_ver)
-			print >> tmpf, "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucs_ver)
-			addFile( 'info/no_maintenance', None, tmpf )
-	except urllib2.URLError as ex:
+			print "WARNING: Could NOT determine product maintenance. [%s]" % (innerex)
+			print >> tmpf, "Failed to check maintenance (%s)\ncurrent UCS Version %s" % (innerex, ucs_ver)
+			addFile( 'info/maintenance', None, tmpf )
+	else:
+		ucc_ver = ucr.get('version/version')
 		tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
-		print "WARNING: Could NOT determine product maintenance. [%s]" % (ex)
-		print >> tmpf, "Failed to check maintenance (%s)\ncurrent UCS Version %s" % (ex, ucs_ver)
-		addFile( 'info/maintenance_check.failed', None, tmpf )
+		print "Could NOT determine product maintenance for UCC systems."
+		print >> tmpf, "Could NOT determine product maintenance for UCC systems.)\ncurrent UCC Version %s" % (ucc_ver)
+		addFile( 'info/maintenance', None, tmpf )
 
 def checkEntryUUID():
 	''' Check if ldap base is searchable by its entryUUID '''

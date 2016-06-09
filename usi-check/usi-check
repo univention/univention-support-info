@@ -77,6 +77,9 @@ if __name__ == '__main__':
 	parser.add_option("-c", "--category", dest="category",
 						help="specify category", metavar="CATEGORY",
 						default='*')
+	parser.add_option("-f", "--folder", dest="gofolder",
+						help="go to usi folder", metavar="FOLDER",
+						default='0')
 
 
 	(options, args) = parser.parse_args()
@@ -95,3 +98,6 @@ if __name__ == '__main__':
 			print 'Category: ' + test.category
 			last_cat = test.category
 		test.report()
+
+	if options.gofolder:
+		os.chdir(options.usifolder)
