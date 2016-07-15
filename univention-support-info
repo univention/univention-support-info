@@ -625,10 +625,12 @@ def rotatedLogs():
 		('/var/log/kern*', DefaultMaxLineCount),
 		('/var/log/univention/*', DefaultMaxLineCount),
 		('/var/log/univention/ucc-clients/*', DefaultMaxLineCount),
+		('/var/log/univention/connector-s4.log*', 2000000),
 		('/var/log/apt/term.log*', DefaultMaxLineCount),
 		('/var/log/squid/*', DefaultMaxLineCount),
 		('/var/log/dansguardian/*', DefaultMaxLineCount),
 		('/var/log/squidguard/*', DefaultMaxLineCount),
+		('/var/log/daemon.log*', DefaultMaxLineCount),
 		('/var/log/syslog*', 2000000),
 		('/var/log/univention/system-stats.log*', 5000000),
 		('/var/log/freeradius/*', DefaultMaxLineCount),
@@ -639,7 +641,6 @@ def rotatedLogs():
 			'/var/log/univention/updater.log',
 			'/var/log/apt/term.log',
 			'/var/log/univention/ad-takeover.log',
-			'/var/log/univention/connector-s4.log',
 			))
 	GzipSuffix = '.gz'
 	logs = {}
