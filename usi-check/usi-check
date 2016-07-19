@@ -94,10 +94,11 @@ if __name__ == '__main__':
 	last_cat = ''
 	for test in getTests(options.category):
 		test.run()
-		if last_cat != test.category:
-			print 'Category: ' + test.category
-			last_cat = test.category
-		test.report()
+		if test.exitcode > 0:
+			if last_cat != test.category:
+				print("\033[36;1mCategory: %s\033[0m" % (test.category))
+				last_cat = test.category
+			test.report()
 
 	if options.gofolder:
 		os.chdir(options.usifolder)
