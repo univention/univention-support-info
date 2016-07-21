@@ -80,7 +80,9 @@ if __name__ == '__main__':
 	parser.add_option("-f", "--folder", dest="gofolder",
 						help="go to usi folder", metavar="FOLDER",
 						default='0')
-
+	parser.add_option("-n", "--noskip",
+						action="store_false", dest="skip_empty", default=True,
+						help="skip empty categories")
 
 	(options, args) = parser.parse_args()
 	if args and not options.usifolder:
@@ -89,12 +91,11 @@ if __name__ == '__main__':
 		options.usifolder = os.getcwd() 
 	options.usifolder = os.path.join(os.path.realpath(options.usifolder))
 
-
 	print 'Support-Info-Archiv report for %s\n' % options.usifolder
 	last_cat = ''
 	for test in getTests(options.category):
 		test.run()
-		if test.exitcode > 0:
+		if test.exitcode > 0 or not options.skip_empty:
 			if last_cat != test.category:
 				print("\033[36;1mCategory: %s\033[0m" % (test.category))
 				last_cat = test.category
