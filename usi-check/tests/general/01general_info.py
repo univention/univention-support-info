@@ -6,20 +6,26 @@ from ucr import UCR
 
 # load ucr variables
 ucr = UCR(sys.argv[1])
-RETURN=[]
+RETURN = []
 
-RETURN.append("UCS Version:  %s-%s-Errata%s" % (ucr.get('version/version'), ucr.get('version/patchlevel'), ucr.get('version/erratalevel'))) 
+school_ver = ucr.get('appcenter/apps/ucsschool/version')
+smb_role = ucr.get('samba/role')
+smb4_role = ucr.get('samba4/role')
+
+RETURN.append("UCS Version:  %s-%s Errata %s" % (ucr.get('version/version'), ucr.get('version/patchlevel'), ucr.get('version/erratalevel')))
+if (school_ver != "") and (school_ver is not None):
+	RETURN.append("UCS@school:   %s" % (school_ver))
 RETURN.append("Server Rolle: %s" % (ucr.get('server/role')))
 
-#if samba is running display samba role
-if (ucr.get('samba/role') != "" and ucr.get('samba/role') != None):
-  RETURN.append("Samba Rolle:  %s" % (ucr.get('samba/role')))
+# if samba is running display samba role
+if (smb_role != "") and (smb_role is not None):
+	RETURN.append("Samba Rolle:  %s" % (smb_role))
 
-#if samba4 is running display samba role
-if (ucr.get('samba4/role') != "" and ucr.get('samba4/role') != None):
-  RETURN.append("Samba4 Rolle: %s" % (ucr.get('samba4/role')))
+# if samba4 is running display samba role
+if (smb4_role != "") and (smb4_role is not None):
+	RETURN.append("Samba4 Rolle: %s" % (smb4_role))
 
-#if no maintenance display the message
+# if no maintenance display the message
 fname = 'info/no_maintenance'
 if os.path.exists(fname):
 	with open(fname, 'r') as fsock:
