@@ -31,11 +31,13 @@ def logfile_count(search_daemon_string):
 			daemon_count = servfail_in_daemon(logfile, search_daemon_string)
 			if daemon_count > 0:
 				print('Daemon.log %s enthaelt %s SERVFAILS' % (logfile, daemon_count))
-				status += 2
+				status += 1
 		except IOError as exc:
 			print(repr(exc))
 			print('Error opening var_log_syslog file %s: %s' % (syslog_path, exc))
 			return -1
+	if status > 0:
+		print ("We have a sdb-article for this issue: http://sdb.univention.de/1273") 
 	return status
 	
 def main():
