@@ -435,6 +435,7 @@ def templateFiles():
 def checkTransactionFile():
 	_sprint( 'Collecting output transaction-file-check: ' )
 
+	transactionCheck = tempfile.TemporaryFile(prefix='univention-support-info.')
 	with open('/var/lib/univention-ldap/notify/transaction', 'r') as transaction:
 		tac = 1  # transaction id counter
 		tlc = 1  # transaction line counter
@@ -445,28 +446,25 @@ def checkTransactionFile():
 			try:
 				tid = int(tid)
 			except:
-				check = 'ERROR at line %d: "%s"' % (tlc, ' '.join(line))
-				addFile('info/transaction-file-check', len(check), cStringIO.StringIO(check))
+				print >> transactionCheck, 'ERROR at line %d: "%s"' % (tlc, ' '.join(line))
 				continue
 
 			if tid == tac:  # ok
 				tac += 1
 			else:
-				check = 'Line %s: \t ID:%s should be %s' % (tlc, tid, tac),
-				addFile('info/transaction-file-check', len(check), cStringIO.StringIO(check))
+				print >> transactionCheck, 'Line %s: \t ID:%s should be %s' % (tlc, tid, tac),
 				cld = (tid - tac)  # counter line diff
 				if cld < 0:  # id repeat
 					cld = (cld * -1)
-					check = ' REPEATED (%s)' % (cld)
-					addFile('info/transaction-file-check', len(check), cStringIO.StringIO(check))
+					print >> transactionCheck, ' REPEATED (%s)' % (cld)
 					tac = (tid + cld)
 				elif cld > 0:  # id skip
-					check = ' SKIPPED (%s)' % (cld)
-					addFile('info/transaction-file-check', len(check), cStringIO.StringIO(check))
+					print >> transactionCheck, ' SKIPPED (%s)' % (cld)
 					tac = (tid + 1)
 
 			tlc += 1
 
+		addFile('info/transaction-file-check', None, transactionCheck)
 		print 'done.'
 
 def collectCommandData():
