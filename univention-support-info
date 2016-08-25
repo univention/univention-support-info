@@ -310,7 +310,7 @@ def simpleFiles():
 	print 'done.'
 
 def licenseObject():
-	''' Get license object from ldap (cn=license) '''	
+	''' Get license object from ldap (cn=license) '''
 	stdout = executeCommand( 'univention-license-object', (_ldapsearchCommand(), '-x' , '-b', 'cn=license,cn=univention,'+ucr.get('ldap/base')) )
 	addFile('info/univention-license-object', len(stdout), cStringIO.StringIO(stdout))
 
@@ -402,7 +402,7 @@ def aptPackageList():
 				print >> packagesUnknownSource, "%s\tUNKNOWN" % (pkg.name,)
 				continue
 			print >> packagesAll, "%s\t%s" % (pkg.name, uri)
-	
+
 	addFile( 'info/packages_all', None, packagesAll )
 	addFile( 'info/packages_unknown-source', None, packagesUnknownSource )
 	print 'done.'
@@ -434,22 +434,40 @@ def templateFiles():
 
 def checkTransactionFile():
 	_sprint( 'Collecting output transaction-file-check: ' )
+
 	with open('/var/lib/univention-ldap/notify/transaction', 'r') as transaction:
-		lc = 1	
-		for line in transaction:	
-			line = line.strip().split(' ', 1)	
+		tac = 1  # transaction id counter
+		tlc = 1  # transaction line counter
+
+		for line in transaction:
+			tid = line.strip().split(' ', 1)[0]
+
 			try:
-				cur_lc = int(line[0])	
-			except:	
-				check = 'ERROR at line %d: "%s"' % ( lc, ' '.join(line) )
+				tid = int(tid)
+			except:
+				check = 'ERROR at line %d: "%s"' % (tlc, ' '.join(line))
 				addFile('info/transaction-file-check', len(check), cStringIO.StringIO(check))
-				break	
-			if cur_lc != lc:	
-				check = 'ERROR at line %d: "%s"' % ( lc, ' '.join(line) )	
+				continue
+
+			if tid == tac:  # ok
+				tac += 1
+			else:
+				check = 'Line %s: \t ID:%s should be %s' % (tlc, tid, tac),
 				addFile('info/transaction-file-check', len(check), cStringIO.StringIO(check))
-				break	
-			lc += 1
-	print 'done.'
+				cld = (tid - tac)  # counter line diff
+				if cld < 0:  # id repeat
+					cld = (cld * -1)
+					check = ' REPEATED (%s)' % (cld)
+					addFile('info/transaction-file-check', len(check), cStringIO.StringIO(check))
+					tac = (tid + cld)
+				elif cld > 0:  # id skip
+					check = ' SKIPPED (%s)' % (cld)
+					addFile('info/transaction-file-check', len(check), cStringIO.StringIO(check))
+					tac = (tid + 1)
+
+			tlc += 1
+
+		print 'done.'
 
 def collectCommandData():
     #add pvdisplay,vgdisplay,lvdisplay (BUG 35075)
@@ -515,7 +533,7 @@ def collectCommandData():
 					('/usr/share/univention-directory-listener/get_notifier_id.py', ),
 				'mailq':
 					('mailq', ),
-		   		'univention-license-check':
+				'univention-license-check':
 					('univention-license-check', ),
 				'hostaccount-id':
 					('id', ucr.get('hostname') + '$', ),
@@ -528,7 +546,7 @@ def collectCommandData():
 	# Commands depending on samba version
 	if sambaDomainVersion == 3:
 		commands.update({'test-join':
-							('net', 'rpc', 'testjoin', ),	
+							('net', 'rpc', 'testjoin', ),
 						})
 	elif sambaDomainVersion == 4:
 		commands.update({'net-ads-info':
@@ -674,7 +692,7 @@ def rotatedLogs():
 			fileLinecount = 0
 			if number != -1:
 				path += '.%d' % number
-			
+
 			if gzipped:
 				try:
 					logfile = open(path + GzipSuffix, 'rb')
