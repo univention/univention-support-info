@@ -156,16 +156,19 @@ def Popen(CommandTuple, Input=None):
 	except (OSError, IOError), error:
 		return ('Could not execute %s: %s' % (repr(CommandTuple), repr(' '.join(map(str, error.args)))), '', '')
 
+
 def _ldapsearchCommand():
 	''' Get ldapsearch command depending on UCS version '''
 	if find_executable('univention-ldapsearch'):
 		return 'univention-ldapsearch'
 	return 'ldapsearch'
 
+
 def _sprint(string):
 	''' write status string to stdout without newline '''
 	sys.stdout.write(string)
 	sys.stdout.flush()
+
 
 def U32(i):
 	'''
@@ -176,10 +179,11 @@ def U32(i):
 		i += 1L << 32
 	return i
 
+
 def addFile(name, size, fileobj):
 	# try to determine filesize
-	if size == None or size == False:
-		fileobj.seek(0,os.SEEK_END)
+	if size is None or size is False:
+		fileobj.seek(0, os.SEEK_END)
 		size = fileobj.tell()
 	if fileobj.tell() > 0:
 		fileobj.seek(0)
@@ -189,10 +193,11 @@ def addFile(name, size, fileobj):
 	info.name = 'univention-support-info-' + hostname + '-' + timeString + '/' + name
 	info.mode = stat.S_IRUSR
 	info.mtime = time.time()
-        try:
-                archive.addfile(info, fileobj)
-        except IOError, ex:
-                print 'WARNING: failed to add %r: error=%r' % (fileobj, ex)
+	try:
+		archive.addfile(info, fileobj)
+	except IOError, ex:
+		print 'WARNING: failed to add %r: error=%r' % (fileobj, ex)
+
 
 def addFileByPath(filename):
 	if filename.startswith('/proc/'):
@@ -221,6 +226,7 @@ def addFileByPath(filename):
 		addFile('files/' + filename.strip('/').replace('/', '_'), filesize, fileobj)
 		fileobj.close()
 
+
 def certificateValidity(CertificatePath):
 	try:
 		import M2Crypto
@@ -237,8 +243,9 @@ def certificateValidity(CertificatePath):
 		error = '\n'.join(map(str, error.args))
 		addFile('info/ssl/' + CertificatePath.strip('/').replace('/', '_') + '.ERROR', len(error), cStringIO.StringIO(error))
 
+
 def certificateValidities():
-	_sprint( 'Checking certificate validity: ' )
+	_sprint('Checking certificate validity: ')
 	CertificatePatterns = [
 		'/etc/univention/ssl/*.*/cert.pem',
 		'/etc/univention/ssl/ucsCA/CAcert.pem',
@@ -248,9 +255,10 @@ def certificateValidities():
 			certificateValidity(CertificatePath)
 	print 'done.'
 
+
 def simpleFiles():
-    #add S4-Connector Mapping (BUG 40571)
-    #/boot/config-*, /etc/crontab, /var/spool/cron/**, removed and add /proc/modules (BUG 35075)
+	# add S4-Connector Mapping (BUG 40571)
+	# /boot/config-*, /etc/crontab, /var/spool/cron/**, removed and add /proc/modules (BUG 35075)
 	FilePatterns = [
 		'/etc/apache2/*',
 		'/etc/apache2/*/*',
@@ -287,11 +295,9 @@ def simpleFiles():
 		'/var/univention-backup/ad-takeover/*',
 		'/etc/*/local.conf*',
 		'/root/.bash_history',
-		'/var/log/installer/*',
-		'/var/log/zarafa/*',
 		'/etc/ldap/slapd.conf',
 		]
-	FileExcludePatterns = [ '/etc/apache2/mods-available/*', '/etc/apache2/sites-available/*' ]
+	FileExcludePatterns = ['/etc/apache2/mods-available/*', '/etc/apache2/sites-available/*']
 
 	Files = set()
 	ExcludeFiles = list()
@@ -299,20 +305,22 @@ def simpleFiles():
 		ExcludeFiles.extend(glob.glob(FileExcludePattern))
 	for FilePattern in FilePatterns:
 		for Filename in glob.glob(FilePattern):
-			if not Filename in ExcludeFiles:
+			if Filename not in ExcludeFiles:
 				Files.add(Filename)
 
-	_sprint( 'Collecting files: ' )
+	_sprint('Collecting files: ')
 	for Filename in sorted(list(Files)):
 		if os.path.isfile(Filename):
 			addFileByPath(Filename)
 			_sprint('.')
 	print 'done.'
 
+
 def licenseObject():
 	''' Get license object from ldap (cn=license) '''
-	stdout = executeCommand( 'univention-license-object', (_ldapsearchCommand(), '-x' , '-b', 'cn=license,cn=univention,'+ucr.get('ldap/base')) )
+	stdout = executeCommand('univention-license-object', (_ldapsearchCommand(), '-x', '-b', 'cn=license,cn=univention,'+ucr.get('ldap/base')))
 	addFile('info/univention-license-object', len(stdout), cStringIO.StringIO(stdout))
+
 
 def checkMaintenance():
 	''' Check if UCS-Version is in maintenance '''
@@ -326,51 +334,53 @@ def checkMaintenance():
 				tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
 				print "\033[93mPlease note, system is no longer maintained, security updates are no longer available for current UCS Version %s\033[0m" % (ucs_ver)
 				print >> tmpf, "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucs_ver)
-				addFile( 'info/maintenance', None, tmpf )
+				addFile('info/maintenance', None, tmpf)
 			else:
 				tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
 				print >> tmpf, "maintenance ok\ncurrent UCS Version %s" % (ucs_ver)
-				addFile( 'info/maintenance', None, tmpf )
+				addFile('info/maintenance', None, tmpf)
 		except (urllib2.URLError, IOError) as innerex:
 			tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
 			print "WARNING: Could NOT determine product maintenance. [%s]" % (innerex)
 			print >> tmpf, "Failed to check maintenance (%s)\ncurrent UCS Version %s" % (innerex, ucs_ver)
-			addFile( 'info/maintenance', None, tmpf )
+			addFile('info/maintenance', None, tmpf)
 	else:
 		ucc_ver = ucr.get('version/version')
 		tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
 		print "Could NOT determine product maintenance for UCC systems."
 		print >> tmpf, "Could NOT determine product maintenance for UCC systems.)\ncurrent UCC Version %s" % (ucc_ver)
-		addFile( 'info/maintenance', None, tmpf )
+		addFile('info/maintenance', None, tmpf)
+
 
 def checkEntryUUID():
 	''' Check if ldap base is searchable by its entryUUID '''
-	entryuuid=""
-	basedn=""
+	entryuuid = ""
+	basedn = ""
 	tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
 	(exitcode, stdout, stderr, ) = Popen( (_ldapsearchCommand(), '-xLLL', '-sbase', 'entryUUID', ) )
 	if exitcode == 0:
 		entryuuid = stdout.split()[3]
 	else:
 		print >> tmpf, "ERROR: ldapsearch for base failed: %s" % str(stderr)
-		addFile( 'info/entryUUID.stderr', None, tmpf )
+		addFile('info/entryUUID.stderr', None, tmpf)
 		return
 	(exitcode, stdout, stderr, ) = Popen( (_ldapsearchCommand(), '-xLLL', 'entryUUID='+entryuuid, 'dn', ) )
 	if exitcode == 0:
 		basedn = stdout.split()[1]
 	else:
 		print >> tmpf, "ERROR: ldapsearch by entryUUID failed: %s" % str(stderr)
-		addFile( 'info/entryUUID.stderr', None, tmpf )
+		addFile('info/entryUUID.stderr', None, tmpf)
 		return
 	if ucr.get('ldap/base') == basedn:
 		print >> tmpf, "OK: ldap base found by entryUUID"
 	else:
 		print >> tmpf, "ERROR: ldap base not found by entryUUID, check ldap index"
-	addFile( 'info/entryUUID', None, tmpf )
+	addFile('info/entryUUID', None, tmpf)
+
 
 def aptPackageList():
 	"""List installed packages and their source repository."""
-	_sprint( 'Collecting package lists: ' )
+	_sprint('Collecting package lists: ')
 	cache = apt.Cache()
 
 	packagesAll = tempfile.TemporaryFile(prefix='univention-support-info.')
@@ -403,11 +413,12 @@ def aptPackageList():
 				continue
 			print >> packagesAll, "%s\t%s" % (pkg.name, uri)
 
-	addFile( 'info/packages_all', None, packagesAll )
-	addFile( 'info/packages_unknown-source', None, packagesUnknownSource )
+	addFile('info/packages_all', None, packagesAll)
+	addFile('info/packages_unknown-source', None, packagesUnknownSource)
 	print 'done.'
 
-def executeCommand(commandName, command, log_stderr = False):
+
+def executeCommand(commandName, command, log_stderr=False):
 	(exitcode, stdout, stderr, ) = Popen(command)
 	if exitcode or log_stderr:
 		if type(exitcode) is int:
@@ -417,8 +428,9 @@ def executeCommand(commandName, command, log_stderr = False):
 		addFile('info/' + commandName + '.stderr', len(stderr), cStringIO.StringIO(stderr))
 	return stdout
 
+
 def templateFiles():
-	_sprint( 'Searching for changed template files: ' )
+	_sprint('Searching for changed template files: ')
 	stdout = executeCommand('check-templates', ('find', '/etc/univention/templates/files/', '(', '-name', '*.dpkg-new', '-o', '-name', '*.dpkg-dist', ')', '-print0', ))
 	files = [templatefile for templatefile in stdout.split('\0') if templatefile]
 	message = ('Found %d:\n' % len(files)) + '\n'.join(files) + '\n'
@@ -432,8 +444,9 @@ def templateFiles():
 		_sprint('.')
 	print 'done.'
 
+
 def checkTransactionFile():
-	_sprint( 'Collecting output transaction-file-check: ' )
+	_sprint('Collecting output transaction-file-check: ')
 
 	transactionCheck = tempfile.TemporaryFile(prefix='univention-support-info.')
 	with open('/var/lib/univention-ldap/notify/transaction', 'r') as transaction:
@@ -467,8 +480,9 @@ def checkTransactionFile():
 		addFile('info/transaction-file-check', None, transactionCheck)
 		print 'done.'
 
+
 def collectCommandData():
-    #add pvdisplay,vgdisplay,lvdisplay (BUG 35075)
+	# add pvdisplay,vgdisplay,lvdisplay (BUG 35075)
 	commands = {'hostname-f':
 					('hostname', '--fqdn', ),
 				'ifconfig-a':
@@ -580,7 +594,7 @@ def collectCommandData():
 								('net', 'ads', 'testjoin', ),
 							})
 
-	_sprint( 'Collecting command output: ' )
+	_sprint('Collecting command output: ')
 	for commandName in commands:
 		command = commands[commandName]
 		if type(command[0]) == tuple:
@@ -592,15 +606,16 @@ def collectCommandData():
 		_sprint('.')
 	print 'done.'
 
+
 def univentionSystemInfo():
-	_sprint( 'Collecting hardware information: ' )
+	_sprint('Collecting hardware information: ')
 	manu = executeCommand('dmidecode', ('dmidecode', '-s', 'system-manufacturer'))
 	product = executeCommand('dmidecode', ('dmidecode', '-s', 'system-product-name'))
 	if not manu:
 		manu = 'Unknown'
 	if not product:
 		product = 'Unknown'
-	stdout = executeCommand('univention-system-info', ('univention-system-info','-u','-m',manu,'-t',product,'-c','Created by univention-support-info','-s','-',))
+	stdout = executeCommand('univention-system-info', ('univention-system-info', '-u', '-m', manu, '-t', product, '-c', 'Created by univention-support-info', '-s', '-', ))
 	archive = None
 	for line in stdout.split('\n'):
 		if line.startswith('archive'):
@@ -610,10 +625,10 @@ def univentionSystemInfo():
 		error += '\nunivention-system-info stdout:\n%s' % stdout
 		addFile('info/univention-system-info.ERROR', len(error), cStringIO.StringIO(error))
 		return
-	filename =os.path.join( '/var/www/univention-management-console/system-info/', archive )
+	filename = os.path.join('/var/www/univention-management-console/system-info/', archive)
 	# If UMC is not installed /var/www/univention-management-console/system-info/ does not exist and archive stays in /tmp
-	if not os.path.isfile( filename ):
-		filename = os.path.join( '/tmp/', archive )
+	if not os.path.isfile(filename):
+		filename = os.path.join('/tmp/', archive)
 	try:
 		archive = tarfile.open(name=filename, mode='r:*')
 		for member in archive:
@@ -628,8 +643,8 @@ def univentionSystemInfo():
 		addFile('info/univention-system-info.ERROR', len(error), cStringIO.StringIO(error))
 	print 'done.'
 
-def rotatedLogs():
-	DefaultMaxLineCount = 1000
+
+def rotatedLogs(DefaultMaxLineCount):
 	FilePatterns = [
 		('/var/log/apache/*', DefaultMaxLineCount),
 		('/var/log/apache2/*', DefaultMaxLineCount),
@@ -651,13 +666,15 @@ def rotatedLogs():
 		('/var/log/univention/system-stats.log*', 5000000),
 		('/var/log/freeradius/*', DefaultMaxLineCount),
 		('/var/log/cups/*', DefaultMaxLineCount),
+		('/var/log/installer/*', 2000000),
+		('/var/log/zarafa/*', 100000),
 		]
-	FullLogs = set(( # for these every available log-file shall be included
-			'/var/log/dpkg.log',
-			'/var/log/univention/updater.log',
-			'/var/log/apt/term.log',
-			'/var/log/univention/ad-takeover.log',
-			))
+	FullLogs = set((  # for these every available log-file shall be included
+		'/var/log/dpkg.log',
+		'/var/log/univention/updater.log',
+		'/var/log/apt/term.log',
+		'/var/log/univention/ad-takeover.log',
+	))
 	GzipSuffix = '.gz'
 	logs = {}
 	for FilePattern in [fp[0] for fp in FilePatterns]:
@@ -670,7 +687,7 @@ def rotatedLogs():
 				filename = filename[:-len(GzipSuffix)]
 			else:
 				gzipped = False
-			if not filename.endswith('.') and os.path.splitext(filename)[1].strip('0123456789') == '.': # has extension and only digits in it
+			if not filename.endswith('.') and os.path.splitext(filename)[1].strip('0123456789') == '.':  # has extension and only digits in it
 				(filename, ext, ) = os.path.splitext(filename)
 				number = int(ext.lstrip('.'))
 			else:
@@ -679,7 +696,7 @@ def rotatedLogs():
 				logs[filename] = {}
 			logs[filename][number] = gzipped
 
-	_sprint( 'Collecting logfiles: ' )
+	_sprint('Collecting logfiles: ')
 	for logname in sorted(logs):
 		logLinecount = 0
 		nonemptyNumber = 0
@@ -704,26 +721,25 @@ def rotatedLogs():
 				try:
 					logfile.seek(-4, os.SEEK_END)
 				except IOError, e:
-					print '\n\nFilename: %s' %path + GzipSuffix
+					print('\n\nFilename: %s' % path + GzipSuffix)
 					raise IOError(e)
-				fileBytes = U32( gzip.read32(logfile) )
+				fileBytes = U32(gzip.read32(logfile))
 				logfile.close()
-				fileLinecount = int( subprocess.Popen( 'zcat -f %s | wc -l' % (path + GzipSuffix), stdout=subprocess.PIPE, shell=True).stdout.read().strip() )
+				fileLinecount = int(subprocess.Popen('zcat -f %s | wc -l' % (path + GzipSuffix), stdout=subprocess.PIPE, shell=True).stdout.read().strip())
 			else:
 				# addFile may calculate the size for us
 				fileBytes = None
-				fileLinecount = int( subprocess.Popen( ('wc', '-l', path), stdout=subprocess.PIPE).stdout.read().strip().split()[0] )
+				fileLinecount = int(subprocess.Popen(('wc', '-l', path), stdout=subprocess.PIPE).stdout.read().strip().split()[0])
 			logLinecount += fileLinecount
-			#if gzipped:
-			#	_sprint( '"%s", "%s", "%s" -> ' % (path + GzipSuffix, fileBytes, fileLinecount) )
-			#else:
-			#	_sprint( '"%s", "%s", "%s" -> ' % (path, fileBytes, fileLinecount) )
+			# if gzipped:
+			# 	_sprint( '"%s", "%s", "%s" -> ' % (path + GzipSuffix, fileBytes, fileLinecount) )
+			# else:
+			# 	_sprint( '"%s", "%s", "%s" -> ' % (path, fileBytes, fileLinecount) )
 
 			if fileLinecount <= 0:
 				# skip logname if empty
-				#print 'ERROR: Empty file? "%s"' % path
+				# print 'ERROR: Empty file? "%s"' % path
 				continue
-
 
 			nonemptyNumber += 1
 			try:
@@ -738,7 +754,7 @@ def rotatedLogs():
 
 			# Add file to archive ...
 			addFile('files/' + '%s_%d' % (logname.strip('/').replace('/', '_'), nonemptyNumber, ), fileBytes, logfile)
-			#print 'Added as "%s_%d"' % (logname.strip('/').replace('/', '_'), nonemptyNumber, )
+			# print 'Added as "%s_%d"' % (logname.strip('/').replace('/', '_'), nonemptyNumber, )
 			logfile.close()
 
 			if logname not in FullLogs and logLinecount > filter(lambda x: logname.startswith(x[0].replace('*', '')), FilePatterns)[0][1]:
@@ -746,6 +762,7 @@ def rotatedLogs():
 
 			_sprint('.')
 	print 'done.'
+
 
 def atJobs():
 	'''
@@ -760,12 +777,13 @@ def atJobs():
 
 	jobs = ''
 	try:
-		for job in at.list( extended=True ):
-			jobs += '\n'.join( (str(job), job.command) )
+		for job in at.list(extended=True):
+			jobs += '\n'.join(str(job), job.command)
 	except OSError, error:
 		error = str(error.message)
 		addFile('info/at-jobs' + '.ERROR', len(error), cStringIO.StringIO(error))
 	addFile('info/at-jobs', len(jobs), cStringIO.StringIO(jobs))
+
 
 def tryDelete(filename):
 	try:
@@ -773,12 +791,13 @@ def tryDelete(filename):
 	except (OSError, IOError, ):
 		pass
 
+
 def gpg(archiveFileName):
-	_sprint( 'Encrypting file: ' )
+	_sprint('Encrypting file: ')
 	keyringFileName = tempfile.mkstemp(prefix='univention-support-info-keyring.', suffix='.gpg')[1]
 	secringFileName = tempfile.mkstemp(prefix='univention-support-info-secring.', suffix='.gpg')[1]
 	trustdbFileName = tempfile.mkstemp(prefix='univention-support-info-trustdb.', suffix='.gpg')[1]
-	tryDelete(trustdbFileName) # HACK: file must not exist for gpg to work
+	tryDelete(trustdbFileName)  # HACK: file must not exist for gpg to work
 	gpgFileName = archiveFileName + '.gpg'
 	gpgBase = ('gpg',
 			   '--batch', '--quiet', '--no-tty',
@@ -830,10 +849,12 @@ def gpg(archiveFileName):
 	print 'done.'
 	return gpgFileName
 
+
 def checkForRoot():
 	if os.geteuid() != 0:
 		print 'Please run this program as root!'
 		sys.exit(3)
+
 
 def prepareArchive():
 	global archiveFileName, archiveFile, archive
@@ -841,9 +862,11 @@ def prepareArchive():
 	archiveFile = open(archiveFileName, 'wb')
 	archive = tarfile.open(mode='w|bz2', fileobj=archiveFile)
 
+
 def closeArchive():
 	archive.close()
 	archiveFile.close()
+
 
 def prepareEnvironment():
 	global env
@@ -860,8 +883,10 @@ def prepareEnvironment():
 	except (OSError, IOError, ):
 		pass
 
+
 def cleanup():
 	shutil.rmtree(env['HOME'])
+
 
 def main(encrypt=False):
 	checkForRoot()
@@ -870,7 +895,7 @@ def main(encrypt=False):
 	prepareEnvironment()
 
 	# Check Samba Version
-	if executeCommand( 'samba4-pdc-dn', (_ldapsearchCommand(), '-xLLL', '(&(univentionService=Samba 4)(objectClass=univentionDomainController))', 'dn') ):
+	if executeCommand('samba4-pdc-dn', (_ldapsearchCommand(), '-xLLL', '(&(univentionService=Samba 4)(objectClass=univentionDomainController))', 'dn')):
 		sambaDomainVersion = 4
 	else:
 		sambaDomainVersion = 3
@@ -886,7 +911,7 @@ def main(encrypt=False):
 	atJobs()
 	certificateValidities()
 	univentionSystemInfo()
-	rotatedLogs()
+	rotatedLogs(1000)
 	checkEntryUUID()
 	# Place new calls above this line
 

@@ -2,6 +2,7 @@
 
 import sys
 import os
+import re
 from ucr import UCR
 
 # load ucr variables
@@ -26,10 +27,14 @@ if (smb4_role != "") and (smb4_role is not None):
 	RETURN.append("Samba4 Rolle: %s" % (smb4_role))
 
 # if no maintenance display the message
-fname = 'info/no_maintenance'
+fname = 'info/maintenance'
 if os.path.exists(fname):
 	with open(fname, 'r') as fsock:
-		RETURN.append("Maintenance Info: '%s'" % (fsock.read().strip()))
+		maintenance = fsock.read().strip()
+		if re.search(r'^maintenance ok', maintenance) is None:
+			RETURN.append("Maintenance Info: \033[31;1m'%s'\033[0m" % (maintenance))
+		else:
+			RETURN.append("Maintenance Info: \033[32;1m%s\033[0m" % (maintenance.splitlines()[0]))
 
 if RETURN:
 	for line in RETURN:
