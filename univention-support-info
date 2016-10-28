@@ -483,22 +483,23 @@ keyData = '\n'.join((
 	'=KfDo',
 	'-----END PGP PUBLIC KEY BLOCK-----'))
 
-toprc = '\n'.join(('RCfile for "top with windows"		   # shameless braggin\'',
-				   'Id:a, Mode_altscr=0, Mode_irixps=1, Delay_time=3.000, Curwin=0',
-				   'Def	 fieldscur=AEHIOQTWKNMbcdfgjplrsuvyzX',
-				   '		winflags=62905, sortindx=10, maxtasks=0',
-				   '		summclr=1, msgsclr=1, headclr=3, taskclr=1',
-				   'Job	 fieldscur=ABcefgjlrstuvyzMKNHIWOPQDX',
-				   '		winflags=62777, sortindx=0, maxtasks=0',
-				   '		summclr=6, msgsclr=6, headclr=7, taskclr=6',
-				   'Mem	 fieldscur=ANOPQRSTUVbcdefgjlmyzWHIKX',
-				   '		winflags=62777, sortindx=13, maxtasks=0',
-				   '		summclr=5, msgsclr=5, headclr=4, taskclr=5',
-				   'Usr	 fieldscur=ABDECGfhijlopqrstuvyzMKNWX',
-				   '		winflags=62777, sortindx=4, maxtasks=0',
-				   '		summclr=3, msgsclr=3, headclr=2, taskclr=3',
-				   '',
-				   ))
+toprc = '\n'.join((
+	'RCfile for "top with windows"		   # shameless braggin\'',
+	'Id:a, Mode_altscr=0, Mode_irixps=1, Delay_time=3.000, Curwin=0',
+	'Def	 fieldscur=AEHIOQTWKNMbcdfgjplrsuvyzX',
+	'		winflags=62905, sortindx=10, maxtasks=0',
+	'		summclr=1, msgsclr=1, headclr=3, taskclr=1',
+	'Job	 fieldscur=ABcefgjlrstuvyzMKNHIWOPQDX',
+	'		winflags=62777, sortindx=0, maxtasks=0',
+	'		summclr=6, msgsclr=6, headclr=7, taskclr=6',
+	'Mem	 fieldscur=ANOPQRSTUVbcdefgjlmyzWHIKX',
+	'		winflags=62777, sortindx=13, maxtasks=0',
+	'		summclr=5, msgsclr=5, headclr=4, taskclr=5',
+	'Usr	 fieldscur=ABDECGfhijlopqrstuvyzMKNWX',
+	'		winflags=62777, sortindx=4, maxtasks=0',
+	'		summclr=3, msgsclr=3, headclr=2, taskclr=3',
+	'',
+))
 
 import cStringIO
 import glob
@@ -558,7 +559,9 @@ archive = None
 archiveFile = None
 archiveFileName = None
 
+
 class Command(object):
+
 	def __init__(self, cmd, Input):
 		self.cmd = cmd
 		self.Input = Input
@@ -572,7 +575,7 @@ class Command(object):
 				self.process = subprocess.Popen(self.cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True, env=env)
 				(self.outData, self.errData) = self.process.communicate(input=self.Input)
 			except (OSError, IOError) as ex:
-				self.outData="Could not execute %s: %s" % (repr(self.cmd), repr(' '.join(map(str, ex.args))))
+				self.outData = "Could not execute %s: %s" % (repr(self.cmd), repr(' '.join(map(str, ex.args))))
 
 		thread = threading.Thread(target=target)
 		thread.start()
@@ -709,7 +712,7 @@ def certificateValidities(flat):
 	CertificatePatterns = [
 		'/etc/univention/ssl/*.*/cert.pem',
 		'/etc/univention/ssl/ucsCA/CAcert.pem',
-		]
+	]
 	for CertificatePattern in CertificatePatterns:
 		for CertificatePath in glob.glob(CertificatePattern):
 			certificateValidity(CertificatePath, flat)
@@ -759,7 +762,7 @@ def simpleFiles(flat):
 		'/etc/*/local.conf*',
 		'/root/.bash_history',
 		'/etc/ldap/slapd.conf',
-		]
+	]
 	FileExcludePatterns = ['/etc/apache2/mods-available/*', '/etc/apache2/sites-available/*']
 
 	Files = set()
@@ -781,7 +784,7 @@ def simpleFiles(flat):
 
 def licenseObject():
 	''' Get license object from ldap (cn=license) '''
-	stdout = executeCommand('univention-license-object', (_ldapsearchCommand(), '-x', '-b', 'cn=license,cn=univention,'+ucr.get('ldap/base')))
+	stdout = executeCommand('univention-license-object', (_ldapsearchCommand(), '-x', '-b', 'cn=license,cn=univention,' + ucr.get('ldap/base')))
 	addFile('info/univention-license-object', len(stdout), cStringIO.StringIO(stdout))
 
 
@@ -799,11 +802,11 @@ def checkMaintenance():
 
 			tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
 			# if maint_info['maintained'].lower() not in ['true', '1']:
-			if maint_info['maintained'].lower() in ['true', '1'] or ( maint_info['maintained'].lower() in ['extended', '1'] and ucs_lic == ldap_base ):
+			if maint_info['maintained'].lower() in ['true', '1'] or (maint_info['maintained'].lower() in ['extended', '1'] and ucs_lic == ldap_base):
 				print >> tmpf, "maintenance ok\ncurrent UCS Version %s" % (ucs_ver)
 				addFile('info/maintenance', None, tmpf)
 			else:
-				miMsg = "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucs_ver)
+				miMsg = "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucs_ver,)
 				print "\033[93m%s\033[0m" % (miMsg)
 				print >> tmpf, miMsg
 				addFile('info/maintenance', None, tmpf)
@@ -816,7 +819,7 @@ def checkMaintenance():
 		ucc_ver = ucr.get('version/version')
 		tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
 		print "Could NOT determine product maintenance for UCC systems."
-		print >> tmpf, "Could NOT determine product maintenance for UCC systems.)\ncurrent UCC Version %s" % (ucc_ver)
+		print >> tmpf, "Could NOT determine product maintenance for UCC systems.)\ncurrent UCC Version %s" % (ucc_ver,)
 		addFile('info/maintenance', None, tmpf)
 
 
@@ -825,14 +828,14 @@ def checkEntryUUID():
 	entryuuid = ""
 	basedn = ""
 	tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
-	(exitcode, stdout, stderr, ) = Popen( (_ldapsearchCommand(), '-xLLL', '-sbase', 'entryUUID', ) )
+	(exitcode, stdout, stderr, ) = Popen((_ldapsearchCommand(), '-xLLL', '-sbase', 'entryUUID', ))
 	if exitcode == 0:
 		entryuuid = stdout.split()[3]
 	else:
 		print >> tmpf, "ERROR: ldapsearch for base failed: %s" % str(stderr)
 		addFile('info/entryUUID.stderr', None, tmpf)
 		return
-	(exitcode, stdout, stderr, ) = Popen( (_ldapsearchCommand(), '-xLLL', 'entryUUID='+entryuuid, 'dn', ) )
+	(exitcode, stdout, stderr, ) = Popen((_ldapsearchCommand(), '-xLLL', 'entryUUID=' + entryuuid, 'dn', ))
 	if exitcode == 0:
 		basedn = stdout.split()[1]
 	else:
@@ -937,142 +940,94 @@ def checkTransactionFile():
 		print 'FAIL'
 
 
-
 def collectCommandData():
 	# add pvdisplay,vgdisplay,lvdisplay (BUG 35075)
 	# add sharesec --view-all (BUG 44376)
-	commands = {'hostname-f':
-					('hostname', '--fqdn', ),
-				'ifconfig-a':
-					('ifconfig', '-v', '-a', ),
-				'iptables-L_filter':
-					('iptables', '-L', '-n', '-v', '-t', 'filter', ),
-				'iptables-L_nat':
-					('iptables', '-L', '-n', '-v', '-t', 'nat', ),
-				'iptables-L_mangle':
-					('iptables', '-L', '-n', '-v', '-t', 'mangle', ),
-				'iptables-L_raw':
-					('iptables', '-L', '-n', '-v', '-t', 'raw', ),
-				'iptables-save':
-					('iptables-save', '-c', ),
-				'route-4':
-					('route', '-v', '-ee', '-n', '-A', 'inet', ),
-				'route-6':
-					('route', '-v', '-ee', '-n', '-A', 'inet6', ),
-				'netstat':
-					('netstat', '--tcp', '--udp', '--listening', '--program', '--extend', '--extend', '--verbose', '--timers', '--numeric', '--wide', ),
-				'dpkg-l':
-					('dpkg-query', '--show', '--showformat=${Status}\t${Package}\t${Version}\n', ),
-				'dpkg--audit':
-					('dpkg', '--audit', ),
-				'uname':
-					('uname', '-a', ),
-				'ps':
-					('ps', '-AHFly', ),
-				'ps-full':
-					('ps', '-ALwwo', 'stat,pid,ppid,sid,tty,nlwp,lwp,pri,ni,sched,wchan,vsz,rss,sz,pcpu,pmem,cmd,blocked,caught,ignored,pending,lstart,cls,time,flags,uid,user,ruid,ruser,suid,suser,gid,group,rgid,rgroup,sgid,sgroup', ),
-				'ucr-dump':
-					('univention-config-registry', 'dump', ),
-				'df-full':
-					('df', '--portability', '--print-type', ),
-				'df-i-full':
-					('df', '--portability', '--print-type', '--inodes', ),
-				'df':
-					('df', '-h', ),
-				'df-i':
-					('df', '-h', '-i', ),
-				'join-status':
-					('univention-check-join-status', ),
-				'virsh-qemu':
-					('virsh', '-c', 'qemu:///system', 'capabilities', ),
-				'virsh-xen':
-					('virsh', '-c', 'xen:///',		'capabilities', ),
-                                'pvdisplay':
-                                        ('pvdisplay',),
-                                'vgdisplay':
-                                        ('vgdisplay',),
-                                'lvdisplay':
-                                        ('lvdisplay',),
-				'top':
-					('top', '-b', '-n2', ),
-				'testparm':
-					(('testparm', '-s', '-vvv', ), True),
-				'listenerID':
-					('cat', '/var/lib/univention-directory-listener/notifier_id', ),
-				'notifierID':
-					('/usr/share/univention-directory-listener/get_notifier_id.py', ),
-				'mailq':
-					('mailq', ),
-				'univention-license-check':
-					('univention-license-check', ),
-				'hostaccount-id':
-					('id', ucr.get('hostname') + '$', ),
-				'dig_AXFR':
-					('dig', '@%s' % ucr.get('nameserver1'), ucr.get('domainname'), '-t', 'AXFR'),
-				'univention-connector-list-rejected':
-					('univention-connector-list-rejected', ),
-				'sharesec':
-					('sharesec', '--view-all', ),
-				'adtakeover':
-					('ls -1d', '/var/lib/samba*/private.before-ad-takeover-*', ),
-				'univentionService':
-					('univention-ldapsearch', '-xLLL', '(|(univentionService=S4-Connector)(univentionService=Samba 4))', 'univentionService', ),
-					# ('univention-ldapsearch', '-xLLL', '(|(univentionService=S4-Connector)(univentionService=Samba 4))', 'univentionService univentionObjectType univentionServerRole univentionOperatingSystem univentionOperatingSystemVersion', ),
-				}
+	commands = {
+		'hostname-f': ('hostname', '--fqdn', ),
+		'ifconfig-a': ('ifconfig', '-v', '-a', ),
+		'iptables-L_filter': ('iptables', '-L', '-n', '-v', '-t', 'filter', ),
+		'iptables-L_nat': ('iptables', '-L', '-n', '-v', '-t', 'nat', ),
+		'iptables-L_mangle': ('iptables', '-L', '-n', '-v', '-t', 'mangle', ),
+		'iptables-L_raw': ('iptables', '-L', '-n', '-v', '-t', 'raw', ),
+		'iptables-save': ('iptables-save', '-c', ),
+		'route-4': ('route', '-v', '-ee', '-n', '-A', 'inet', ),
+		'route-6': ('route', '-v', '-ee', '-n', '-A', 'inet6', ),
+		'netstat': ('netstat', '--tcp', '--udp', '--listening', '--program', '--extend', '--extend', '--verbose', '--timers', '--numeric', '--wide', ),
+		'dpkg-l': ('dpkg-query', '--show', '--showformat=${Status}\t${Package}\t${Version}\n', ),
+		'dpkg--audit': ('dpkg', '--audit', ),
+		'uname': ('uname', '-a', ),
+		'ps': ('ps', '-AHFly', ),
+		'ps-full': ('ps', '-ALwwo', 'stat,pid,ppid,sid,tty,nlwp,lwp,pri,ni,sched,wchan,vsz,rss,sz,pcpu,pmem,cmd,blocked,caught,ignored,pending,lstart,cls,time,flags,uid,user,ruid,ruser,suid,suser,gid,group,rgid,rgroup,sgid,sgroup', ),
+		'ucr-dump': ('univention-config-registry', 'dump', ),
+		'df-full': ('df', '--portability', '--print-type', ),
+		'df-i-full': ('df', '--portability', '--print-type', '--inodes', ),
+		'df': ('df', '-h', ),
+		'df-i': ('df', '-h', '-i', ),
+		'join-status': ('univention-check-join-status', ),
+		'virsh-qemu': ('virsh', '-c', 'qemu:///system', 'capabilities', ),
+		'virsh-xen': ('virsh', '-c', 'xen:///', 'capabilities', ),
+		'pvdisplay': ('pvdisplay',),
+		'vgdisplay': ('vgdisplay',),
+		'lvdisplay': ('lvdisplay',),
+		'top': ('top', '-b', '-n2', ),
+		'testparm': (('testparm', '-s', '-vvv', ), True),
+		'listenerID': ('cat', '/var/lib/univention-directory-listener/notifier_id', ),
+		'notifierID': ('/usr/share/univention-directory-listener/get_notifier_id.py',),
+		'mailq': ('mailq', ),
+		'univention-license-check': ('univention-license-check', ),
+		'hostaccount-id': ('id', ucr.get('hostname') + '$', ),
+		'dig_AXFR': ('dig', '@%s' % ucr.get('nameserver1'), ucr.get('domainname'), '-t', 'AXFR'),
+		'univention-connector-list-rejected': ('univention-connector-list-rejected', ),
+		'sharesec': ('sharesec', '--view-all', ),
+		'adtakeover': ('ls -1d', '/var/lib/samba*/private.before-ad-takeover-*', ),
+		'univentionService': ('univention-ldapsearch', '-xLLL', '(|(univentionService=S4-Connector)(univentionService=Samba 4))', 'univentionService', ),
+		# ('univention-ldapsearch', '-xLLL', '(|(univentionService=S4-Connector)(univentionService=Samba 4))', 'univentionService univentionObjectType univentionServerRole univentionOperatingSystem univentionOperatingSystemVersion', ),
+	}
 	# Commands depending on samba version
 	if sambaDomainVersion == 3:
-		commands.update({'test-join':
-							('net', 'rpc', 'testjoin', ),
-						})
+		commands.update({
+			'test-join': ('net', 'rpc', 'testjoin', ),
+		})
 	elif sambaDomainVersion == 4:
-		commands.update({'net-ads-info':
-							('net', 'ads', 'info', ),
-						'net-ads-lookup':
-							('net', 'ads', 'lookup', ),
-						})
+		commands.update({
+			'net-ads-info': ('net', 'ads', 'info', ),
+			'net-ads-lookup': ('net', 'ads', 'lookup', ),
+		})
 		if ucr.get('samba4/role', None):
 			# Run only S4
-			commands.update({'samba-tool-drs-showrepl':
-								('samba-tool', 'drs', 'showrepl', ),
-							'samba-tool-domain-level-show':
-								('samba-tool', 'domain', 'level', 'show'),
-							'samba-tool-domain-passwordsettings':
-								('samba-tool', 'domain', 'passwordsettings', 'show' ),
-							'testparm-samba4':
-								(('testparm.samba4', '-s', '-vvv'), True),
-							'samba-tool-fsmo-show':
-								('samba-tool', 'fsmo', 'show'),
-							'univention-s4connector-list-rejected':
-								('univention-s4connector-list-rejected', ),
-							'samba-tool-processes':
-								('samba-tool', 'processes'),
-							'check-essential-dns-records':
-								('/usr/share/univention-samba4/scripts/check_essential_samba4_dns_records.sh',),
-							})
+			commands.update({
+				'samba-tool-drs-showrepl': ('samba-tool', 'drs', 'showrepl', ),
+				'samba-tool-domain-level-show': ('samba-tool', 'domain', 'level', 'show'),
+				'samba-tool-domain-passwordsettings': ('samba-tool', 'domain', 'passwordsettings', 'show'),
+				'testparm-samba4': (('testparm.samba4', '-s', '-vvv'), True),
+				'samba-tool-fsmo-show': ('samba-tool', 'fsmo', 'show'),
+				'univention-s4connector-list-rejected': ('univention-s4connector-list-rejected',),
+				'samba-tool-processes': ('samba-tool', 'processes'),
+				'check-essential-dns-records': ('/usr/share/univention-samba4/scripts/check_essential_samba4_dns_records.sh',),
+			})
 			# >= Samba4 RC (UCS 3.1)
 			if ucr.get('version/version') >= '3.1':
-				commands.update({'samba-tool-domain-info':
-									('samba-tool', 'domain', 'info', '127.0.0.1', ),
-								})
+				commands.update({
+					'samba-tool-domain-info': ('samba-tool', 'domain', 'info', '127.0.0.1', ),
+				})
 		else:
 			# Run only on S3 member in S4 domain
-			commands.update({'test-join':
-								('net', 'ads', 'testjoin', ),
-							})
+			commands.update({
+				'test-join': ('net', 'ads', 'testjoin', ),
+			})
 	# Commands depending on UCS-Version >= UCS 4.1-3
-	if ((ucr.get ('version/version') == '4.1') and (ucr.get ('version/patchlevel') >= '3')) or ucr.get ('version/version') >= '4.2':
-		commands.update({'univention-directory-listener-ctrl':
-					('univention-directory-listener-ctrl', 'status', ),
-					})
+	if ((ucr.get('version/version') == '4.1') and (ucr.get('version/patchlevel') >= '3')) or ucr.get('version/version') >= '4.2':
+		commands.update({
+			'univention-directory-listener-ctrl': ('univention-directory-listener-ctrl', 'status', ),
+		})
 	# Commands depending on UCS-Version → UCS 4.2
-	if ucr.get ('version/version') >= '4.2':
-		commands.update({'journalctl':
-							('journalctl', '--since=yesterday', ),
-						'hostnamectl-status':
-							('hostnamectl', 'status', ),
-						'univention-app-info':
-							('univention-app', 'info', ),
-						})
+	if ucr.get('version/version') >= '4.2':
+		commands.update({
+			'journalctl': ('journalctl', '--since=yesterday', ),
+			'hostnamectl-status': ('hostnamectl', 'status', ),
+			'univention-app-info': ('univention-app', 'info', ),
+		})
 
 	_sprint('Collecting command output: ')
 	for commandName in commands:
@@ -1085,7 +1040,6 @@ def collectCommandData():
 		addFile('info/' + commandName, len(stdout), cStringIO.StringIO(stdout))
 		_sprint('.')
 	print 'done.'
-
 
 
 def univentionSystemInfo():
@@ -1156,7 +1110,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 		('/var/log/univention/', DefaultMaxLineCount),
 		('/var/log/univention/ucc-clients/', DefaultMaxLineCount),
 		('/var/log/zarafa/', 100000),
-		]
+	]
 	FullLogs = set((  # for these every available log-file shall be included
 		'/var/log/daemon.log',
 		'/var/log/dpkg.log',
@@ -1171,7 +1125,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 	for Entry in [fp[0] for fp in DirectoryList]:
 		if os.path.isdir(Entry):
 			FileList = ["%s%s" % (Entry, f, ) for f in os.listdir(Entry) if re.search(r"%s%s" % (os.path.splitext(f)[0], regEx), f)]
-                        logger.debug("Dir.Entry: '{0}' has Files '{1}'".format(Entry, FileList))
+			logger.debug("Dir.Entry: '{0}' has Files '{1}'".format(Entry, FileList))
 		elif os.path.isfile(Entry):
 			entryPath = "%s/" % os.path.dirname(Entry)
 			entryFile = os.path.basename(Entry)
@@ -1221,7 +1175,8 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 					continue
 
 				# calc bytes and linecount of logfile
-				# last 4 bytes of a gzip file contain the size of the original (uncompressed) input data modulo 2^32.
+				# last 4 bytes of a gzip file contain the size of the original
+				# (uncompressed) input data modulo 2^32.
 				try:
 					logfile.seek(-4, os.SEEK_END)
 				except IOError, e:
@@ -1236,9 +1191,9 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 				fileLinecount = int(subprocess.Popen(('wc', '-l', path), stdout=subprocess.PIPE).stdout.read().strip().split()[0])
 			logLinecount += fileLinecount
 			# if gzipped:
-			# 	_sprint( '"%s", "%s", "%s" -> ' % (path + GzipSuffix, fileBytes, fileLinecount) )
+			# 	_sprint('"%s", "%s", "%s" -> ' % (path + GzipSuffix, fileBytes, fileLinecount))
 			# else:
-			# 	_sprint( '"%s", "%s", "%s" -> ' % (path, fileBytes, fileLinecount) )
+			# 	_sprint('"%s", "%s", "%s" -> ' % (path, fileBytes, fileLinecount))
 
 			if fileLinecount <= 0:
 				# skip logname if empty
@@ -1262,21 +1217,21 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 			# Add file to archive ...
 			if options.flatStruct:
 				addFile('files/' + '%s_%d' % (logname.strip('/').replace('/', '_'), nonemptyNumber, ), fileBytes, logfile)
-				## print 'Added as "%s_%d"' % (logname.strip('/').replace('/', '_'), nonemptyNumber, )
+				# print 'Added as "%s_%d"' % (logname.strip('/').replace('/', '_'), nonemptyNumber,)
 			else:
 				addFile('files/' + '%s_%d' % (logname.strip('/'), nonemptyNumber, ), fileBytes, logfile)
-				# print 'Added as "%s_%d"' % (logname.strip('/'), nonemptyNumber, )
+				# print 'Added as "%s_%d"' % (logname.strip('/'), nonemptyNumber,)
 			logfile.close()
 
 			if not options.fullLogs:
-                            logger.debug("*** LN: '{}' ***".format(logname))
-                            logger.debug("*** DL: '{}'\n***".format(DirectoryList))
-                            try:
-                                if logname not in FullLogs and logLinecount > filter(lambda x: logname.startswith(x[0].replace('*', '')), DirectoryList)[0][1]:
-                                    break
-                            except Exception as ex:
-                                logger.debug("EXCEPTION: {}".format(ex))
-                                continue
+				logger.debug("*** LN: '{}' ***".format(logname))
+				logger.debug("*** DL: '{}'\n***".format(DirectoryList))
+				try:
+					if logname not in FullLogs and logLinecount > filter(lambda x: logname.startswith(x[0].replace('*', '')), DirectoryList)[0][1]:
+						break
+				except Exception as ex:
+					logger.debug("EXCEPTION: {}".format(ex))
+					continue
 
 		_sprint('.')
 	print 'done.'
@@ -1317,22 +1272,20 @@ def gpg(archiveFileName):
 	trustdbFileName = tempfile.mkstemp(prefix='univention-support-info-trustdb.', suffix='.gpg')[1]
 	tryDelete(trustdbFileName)  # HACK: file must not exist for gpg to work
 	gpgFileName = archiveFileName + '.gpg'
-	gpgBase = ('gpg',
-			   '--batch', '--quiet', '--no-tty',
-			   '--with-colons', '--utf8-strings',
-			   '--no-auto-check-trustdb', '--no-auto-key-locate',
-			   '--no-options',
-			   '--no-random-seed-file',
-			   '--trust-model','always',
-			   '--trustdb-name', trustdbFileName,
-			   '--secret-keyring', secringFileName,
-			   '--no-default-keyring', '--keyring', keyringFileName,
-			   )
-	gpgImport  = gpgBase + ('--import',
-							)
-	gpgEncrypt = gpgBase + ('--recipient', fingerprint,
-							'--encrypt', archiveFileName,
-							)
+	gpgBase = (
+		'gpg',
+		'--batch', '--quiet', '--no-tty',
+		'--with-colons', '--utf8-strings',
+		'--no-auto-check-trustdb', '--no-auto-key-locate',
+		'--no-options',
+		'--no-random-seed-file',
+		'--trust-model', 'always',
+		'--trustdb-name', trustdbFileName,
+		'--secret-keyring', secringFileName,
+		'--no-default-keyring', '--keyring', keyringFileName,
+	)
+	gpgImport = gpgBase + ('--import',)
+	gpgEncrypt = gpgBase + ('--recipient', fingerprint, '--encrypt', archiveFileName,)
 	# Popen is a function above which injects the Input to the called process as "human" input
 	(exitcode, stdout, stderr, ) = Popen(gpgImport, Input=keyData)
 	if exitcode:
@@ -1481,12 +1434,13 @@ if __name__ == "__main__":
 	parser.add_option('--encrypt', action='store_true', dest='encrypt', default=False, help='encrypt data (can only be decrypted by Univention support)')
 	parser.add_option('--full-logs', action='store_true', dest='fullLogs', default=False, help='collect also rotated logfiles')
 	parser.add_option('--flat', action='store_true', dest='flatStruct', default=False, help='flatten the directry structure')
-	parser.usage = '\n'.join(('%prog [options]',
-							  'collect system information',
-							  '',
-							  "%prog collects information about the system's configuration.",
-							  'The information is stored in a temporary tar archive, the path of which is printed to stdout.',
-							  ))
+	parser.usage = '\n'.join((
+		'%prog [options]',
+		'collect system information',
+		'',
+		"%prog collects information about the system's configuration.",
+		'The information is stored in a temporary tar archive, the path of which is printed to stdout.',
+	))
 	(options, args, ) = parser.parse_args()
 	if args:
 		parser.print_help()
