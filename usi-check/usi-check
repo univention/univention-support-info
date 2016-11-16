@@ -88,7 +88,7 @@ if __name__ == '__main__':
 	if args and not options.usifolder:
 		options.usifolder = args[0]
 	elif not args and not options.usifolder:
-		options.usifolder = os.getcwd() 
+		options.usifolder = os.getcwd()
 	options.usifolder = os.path.join(os.path.realpath(options.usifolder))
 
 	print 'Support-Info-Archiv report for %s\n' % options.usifolder
