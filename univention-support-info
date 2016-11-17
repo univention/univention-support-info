@@ -1427,6 +1427,7 @@ def main(options):
 	print("\t%s" % (archiveFileName))
 	cleanup()
 
+
 if __name__ == "__main__":
 	parser = optparse.OptionParser(version="%prog {}".format(usiVersion))
 	parser.add_option('--debug', action='store_true', dest='debug', default=False, help=optparse.SUPPRESS_HELP)
