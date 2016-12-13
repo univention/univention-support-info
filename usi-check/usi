@@ -31,9 +31,23 @@ for A in $ARCHIVE; do
 				echo "Please add a file \"$GPGPASSWDFILE\" containing the passphrase for the support gpg key"
 				exit 1
 			fi
-			gpg --no-use-agent --passphrase-file $GPGPASSWDFILE -d $GPGA > $A
-			if [ $? -eq 0 ]; then
-				rm $GPGA
+			## instead using the passphrase file itself...
+			# gpg --no-use-agent --passphrase-file $GPGPASSWDFILE -d $GPGA > $A
+
+			## parse it and try all passwords inside (line by line)
+			ret = -1
+			while IFS='' read -r PASSPHRASE || [[ -n "$PASSPHRASE" ]]; do
+				gpg --quiet --no-use-agent --passphrase $PASSPHRASE -d $GPGA > $A
+				ret=$?
+				if [ $ret -eq 0 ]; then
+					break
+				elif [ $ret -eq 2 ]; then
+					echo -e "\nusi: Probably wrong passphrase! Trying next key in file '$GPGPASSWDFILE'..."
+				fi
+			done <"$GPGPASSWDFILE"
+			if [ $ret -eq 0 ]; then
+				# rm $GPGA
+				echo -e "will removing $GPGA"
 			fi
 		fi
 		# extract archive
