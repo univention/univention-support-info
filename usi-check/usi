@@ -35,7 +35,7 @@ for A in $ARCHIVE; do
 			# gpg --no-use-agent --passphrase-file $GPGPASSWDFILE -d $GPGA > $A
 
 			## parse it and try all passwords inside (line by line)
-			ret = -1
+			ret=-1
 			while IFS='' read -r PASSPHRASE || [[ -n "$PASSPHRASE" ]]; do
 				gpg --quiet --no-use-agent --passphrase $PASSPHRASE -d $GPGA > $A
 				ret=$?
