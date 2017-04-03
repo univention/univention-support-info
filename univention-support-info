@@ -529,32 +529,16 @@ def aptPackageList():
 	packagesAll = tempfile.TemporaryFile(prefix='univention-support-info.')
 	packagesUnknownSource = tempfile.TemporaryFile(prefix='univention-support-info.')
 
-	if not hasattr(apt, 'deprecation'):  # python apt 0.7.7 in UCS < 3.0
-		packages = [_ for _ in cache if _.isInstalled]
-		for pkg in packages:
-			pkg._lookupRecord(True)
-			try:
-				path = apt_pkg.ParseSection(pkg._records.Record)["Filename"]
-			except KeyError:
-				print >> packagesUnknownSource, "%s\tUNKNOWN" % (pkg.name,)
-				continue
-			cand = pkg._depcache.GetCandidateVer(pkg._pkg)
-			for packagefile, _ in cand.FileList:
-				indexfile = cache._list.FindIndex(packagefile)
-				if indexfile:
-					uri = indexfile.ArchiveURI(path)
-					print >> packagesAll, "%s\t%s" % (pkg.name, uri)
-	else:
-		packages = [_ for _ in cache if _.is_installed]
-		for pkg in packages:
-			version = pkg.installed.version
-			package = pkg.versions[version]
-			try:
-				uri = package.uri
-			except StopIteration:
-				print >> packagesUnknownSource, "%s\tUNKNOWN" % (pkg.name,)
-				continue
-			print >> packagesAll, "%s\t%s" % (pkg.name, uri)
+	packages = [_ for _ in cache if _.is_installed]
+	for pkg in packages:
+		version = pkg.installed.version
+		package = pkg.versions[version]
+		try:
+			uri = package.uri
+		except StopIteration:
+			print >> packagesUnknownSource, "%s\tUNKNOWN" % (pkg.name,)
+			continue
+		print >> packagesAll, "%s\t%s" % (pkg.name, uri)
 
 	addFile('info/packages_all', None, packagesAll)
 	addFile('info/packages_unknown-source', None, packagesUnknownSource)
