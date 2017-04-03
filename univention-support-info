@@ -725,6 +725,11 @@ def collectCommandData():
 			commands.update({'test-join':
 								('net', 'ads', 'testjoin', ),
 							})
+	# Commands depending on UCS-Version → UCS 4.2
+	if ucr.get ('version/version') >= '4.2':
+		commands.update({'journalctl':
+						('journalctl', ),
+					})
 
 	_sprint('Collecting command output: ')
 	for commandName in commands:
