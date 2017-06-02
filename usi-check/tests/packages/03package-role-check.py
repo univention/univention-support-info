@@ -63,7 +63,11 @@ role_packages_in_dpkglist = re.compile(r"(.*)\t(univention-server-.*|univention-
 metapackage_check_result = check_server_pkgs(role_packages_in_dpkglist.findall(dpkglist), server_role)
 
 # print check result
-if len(metapackage_check_result) > 1:
+if not metapackage_check_result:
+	print("ERROR: No server package found!")
+	sys.exit(5)
+
+elif len(metapackage_check_result) > 1:
 	print("ERROR: more than 1 server package found! %s" % (metapackage_check_result,) )
 	sys.exit(3)
 
