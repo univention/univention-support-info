@@ -401,6 +401,7 @@ def certificateValidities():
 
 def simpleFiles():
 	# add S4-Connector Mapping (BUG 40571)
+	# add shares.conf.d/*
 	# /boot/config-*, /etc/crontab, /var/spool/cron/**, removed and add /proc/modules (BUG 35075)
 	FilePatterns = [
 		'/etc/apache2/*',
@@ -434,6 +435,7 @@ def simpleFiles():
 		'/var/lib/univention-connector/s4/*',
 		'/var/spool/cron/**',
 		'/etc/postfix/*',
+		'/etc/samba/shares.conf.d/*',
 		'/etc/imapd/*',
 		'/var/univention-backup/ad-takeover/*',
 		'/etc/*/local.conf*',
@@ -615,6 +617,7 @@ def checkTransactionFile():
 
 def collectCommandData():
 	# add pvdisplay,vgdisplay,lvdisplay (BUG 35075)
+	# add sharesec --view-all (BUG 44376)
 	commands = {'hostname-f':
 					('hostname', '--fqdn', ),
 				'ifconfig-a':
@@ -685,6 +688,12 @@ def collectCommandData():
 					('dig', '@'+ucr.get('nameserver1'), ucr.get('domainname'), '-t', 'AXFR'),
 				'univention-connector-list-rejected':
 					('univention-connector-list-rejected', ),
+				'sharesec':
+					('sharesec', '--view-all', ),
+				'univentionService':
+					('univention-ldapsearch', '-xLLL', '"(|(univentionService=S4-Connector)(univentionService=Samba 4))"', 'univentionService', ),
+				'univention-directory-listener-ctrl':
+					('univention-directory-listener-ctrl', 'status', ),
 				}
 
 	# Commands depending on samba version
