@@ -1,9 +1,12 @@
 #!/usr/bin/python
 
 import os, sys, re
+from ucr import UCR
+# load ucr variables
+ucr = UCR(sys.argv[1])
 
 ucsstamp = re.compile(r'.*\.\d{12}$')
-
+ucs_version = ucr.get('version/version')
 # Some packages do not have a univention buildstamp
 whitelist = [
 			'firefox',
@@ -24,16 +27,17 @@ def in_whitelist(pkgname):
 	return False
 
 odd_packages = []
-with open( os.path.join( sys.argv[1], 'info', 'dpkg-l'), 'r') as infile:
-	for line in infile:
-		if not line.startswith('install'):
-			continue
-		if not ucsstamp.match(line):
-			# no ucs buildstamp
-			line = line.strip()
-			status, pkgname, pkgversion = line.split('\t')
-			if not in_whitelist(pkgname):
-				odd_packages.append( (status, pkgname, pkgversion) )
+if (ucs_version != '4.2'):
+	with open( os.path.join( sys.argv[1], 'info', 'dpkg-l'), 'r') as infile:
+		for line in infile:
+			if not line.startswith('install'):
+				continue
+			if not ucsstamp.match(line):
+				# no ucs buildstamp
+				line = line.strip()
+				status, pkgname, pkgversion = line.split('\t')
+				if not in_whitelist(pkgname):
+					odd_packages.append( (status, pkgname, pkgversion) )
 
 
 if odd_packages:
