@@ -691,11 +691,8 @@ def collectCommandData():
 				'sharesec':
 					('sharesec', '--view-all', ),
 				'univentionService':
-					('univention-ldapsearch', '-xLLL', '"(|(univentionService=S4-Connector)(univentionService=Samba 4))"', 'univentionService', ),
-				'univention-directory-listener-ctrl':
-					('univention-directory-listener-ctrl', 'status', ),
+					('univention-ldapsearch', '-xLLL', '(|(univentionService=S4-Connector)(univentionService=Samba 4))', 'univentionService', ),
 				}
-
 	# Commands depending on samba version
 	if sambaDomainVersion == 3:
 		commands.update({'test-join':
@@ -734,6 +731,11 @@ def collectCommandData():
 			commands.update({'test-join':
 								('net', 'ads', 'testjoin', ),
 							})
+	# Commands depending on UCS-Version >= UCS 4.1-3
+	if ((ucr.get ('version/version') == '4.1') and (ucr.get ('version/patchlevel') >= '3')) or ucr.get ('version/version') >= '4.2':
+		commands.update({'univention-directory-listener-ctrl':
+					('univention-directory-listener-ctrl', 'status', ),
+					})
 	# Commands depending on UCS-Version → UCS 4.2
 	if ucr.get ('version/version') >= '4.2':
 		commands.update({'journalctl':
@@ -751,6 +753,7 @@ def collectCommandData():
 		addFile('info/' + commandName, len(stdout), cStringIO.StringIO(stdout))
 		_sprint('.')
 	print 'done.'
+
 
 
 def univentionSystemInfo():
