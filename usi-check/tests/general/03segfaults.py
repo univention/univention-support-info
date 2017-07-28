@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys
 import os
-import re 
+import re
 from ucr import UCR
 from glob import glob
 
@@ -31,14 +31,14 @@ def logfile_count(search_string):
 		try:
 			syslog_count = segfaults_in_syslog(logfile, search_string)
 			if syslog_count > 0:
-				print('Syslogfile %s enthaelt %s segfaults' % (logfile,syslog_count))
+				print("'%s' enthaelt %s segfaults' % (logfile,syslog_count))
 				status += 1
 		except IOError as exc:
 			print(repr(exc))
-			print('Error opening var_log_syslog file %s: %s' % (syslog_path, exc))
+			print('Error opening '%s': %s' % (syslog_path, exc))
 			return -1
 	return status
-	
+
 def main():
 	usi_path = sys.argv[1]
 	search_string = re.compile(r'.*segfault.*',re.I)
