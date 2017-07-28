@@ -31,11 +31,11 @@ def logfile_count(search_string):
 		try:
 			syslog_count = segfaults_in_syslog(logfile, search_string)
 			if syslog_count > 0:
-				print("'%s' enthaelt %s segfaults' % (logfile,syslog_count))
+				print("'%s' enthaelt %s segfaults" % (logfile,syslog_count))
 				status += 1
 		except IOError as exc:
 			print(repr(exc))
-			print('Error opening '%s': %s' % (syslog_path, exc))
+			print("Error opening '%s': %s" % (syslog_path, exc))
 			return -1
 	return status
 
