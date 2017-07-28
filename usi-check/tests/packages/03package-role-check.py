@@ -18,16 +18,16 @@ from ucr import UCR
 
 def package_is_ok_on_server_role(pkgname, server_role):
 	package_allowed = False
-	if pkgname == "univention-server-master": # univention-server-master
+	if pkgname == "univention-server-master":  # univention-server-master
 		if server_role == "domaincontroller_master":
 			package_allowed = True
-	elif pkgname == "univention-server-backup": # univention-server-backup
+	elif pkgname == "univention-server-backup":  # univention-server-backup
 		if server_role == "domaincontroller_backup":
 			package_allowed = True
-	elif pkgname == "univention-server-slave": # univention-server-slave
+	elif pkgname == "univention-server-slave":  # univention-server-slave
 		if server_role == "domaincontroller_slave":
 			package_allowed = True
-	elif pkgname == "univention-server-member": # univention-server-member
+	elif pkgname == "univention-server-member":  # univention-server-member
 		if server_role == "memberserver":
 			package_allowed = True
 	return package_allowed
@@ -38,7 +38,9 @@ def check_server_pkgs(matches, server_role):
 	installed_metapackages = []
 	for match in matches:
 		(pkgstat, pkgname) = match
-		if pkgstat.startswith('install'): # heed only installed packages
+		if pkgname == "univention-server-overview":
+			continue
+		elif pkgstat.startswith('install'):  # heed only installed packages
 			package_allowed = package_is_ok_on_server_role(pkgname, server_role)
 			installed_metapackages.append({pkgname: package_allowed})
 
@@ -68,13 +70,13 @@ if not metapackage_check_result:
 	sys.exit(5)
 
 elif len(metapackage_check_result) > 1:
-	print("ERROR: more than 1 server package found! %s" % (metapackage_check_result,) )
+	print("ERROR: more than 1 server package found! %s" % (metapackage_check_result,))
 	sys.exit(3)
 
 elif not metapackage_check_result[0].values()[0]:
-	print("Warning: server/role (%s) does NOT match installed Package" % (server_role,) )
+	print("Warning: server/role (%s) does NOT match installed Package" % (server_role,))
 	sys.exit(1)
 
 else:
-	print("Info: server/role (%s) does match installed Package" % (server_role,) )
+	print("Info: server/role (%s) does match installed Package" % (server_role,))
 	sys.exit(0)
