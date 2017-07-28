@@ -27,7 +27,7 @@ if (smb4_role != "") and (smb4_role is not None):
 	RETURN.append("Samba4 Rolle: %s" % (smb4_role))
 
 # if no maintenance display the message
-fname = 'info/maintenance'
+fname = '%s/info/maintenance' % sys.argv[1]
 if os.path.exists(fname):
 	with open(fname, 'r') as fsock:
 		maintenance = fsock.read().strip()
