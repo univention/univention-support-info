@@ -433,6 +433,7 @@ def simpleFiles():
 		'/var/lib/univention-directory-listener/bad_cache',
 		'/var/lib/univention-directory-replication/failed.ldif',
 		'/var/lib/univention-connector/s4/*',
+		'/var/lib/samba/private/.adtakeover/*',
 		'/var/spool/cron/**',
 		'/etc/postfix/*',
 		'/etc/samba/shares.conf.d/*',
@@ -690,6 +691,8 @@ def collectCommandData():
 					('univention-connector-list-rejected', ),
 				'sharesec':
 					('sharesec', '--view-all', ),
+				'adtakeover':
+					('ls -1d', '/var/lib/samba*/private.before-ad-takeover-*', ),
 				'univentionService':
 					('univention-ldapsearch', '-xLLL', '(|(univentionService=S4-Connector)(univentionService=Samba 4))', 'univentionService', ),
 				}
@@ -740,6 +743,8 @@ def collectCommandData():
 	if ucr.get ('version/version') >= '4.2':
 		commands.update({'journalctl':
 						('journalctl', ),
+		commands.update({'univention-app-info':
+						('univention-app', 'info', ),
 					})
 
 	_sprint('Collecting command output: ')
@@ -928,7 +933,7 @@ def atJobs():
 	jobs = ''
 	try:
 		for job in at.list(extended=True):
-			jobs += '\n'.join(str(job), job.command)
+			jobs += '\n'.join(str(job))
 	except OSError, error:
 		error = str(error.message)
 		addFile('info/at-jobs' + '.ERROR', len(error), cStringIO.StringIO(error))
