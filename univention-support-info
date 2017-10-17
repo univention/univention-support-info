@@ -723,6 +723,8 @@ def collectCommandData():
 								('univention-s4connector-list-rejected', ),
 							'samba-tool-processes':
 								('samba-tool', 'processes'),
+							'check-essential-dns-records':
+								('/usr/share/univention-samba4/scripts/check_essential_samba4_dns_records.sh',),
 							})
 			# >= Samba4 RC (UCS 3.1)
 			if ucr.get('version/version') >= '3.1':
