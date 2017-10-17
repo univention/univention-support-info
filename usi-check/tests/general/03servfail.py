@@ -34,7 +34,7 @@ def logfile_count(search_daemon_string):
 				status += 1
 		except IOError as exc:
 			print(repr(exc))
-			print('Error opening var_log_syslog file %s: %s' % (syslog_path, exc))
+			print('Error opening var_log_syslog file %s: %s' % (daemon_path, exc))
 			return -1
 	if status > 0:
 		print ("We have a sdb-article for this issue: http://sdb.univention.de/1273") 
