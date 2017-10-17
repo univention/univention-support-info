@@ -742,8 +742,8 @@ def collectCommandData():
 	# Commands depending on UCS-Version → UCS 4.2
 	if ucr.get ('version/version') >= '4.2':
 		commands.update({'journalctl':
-						('journalctl', ),
-		commands.update({'univention-app-info':
+						('journalctl', '--since=yesterday', ),
+					'univention-app-info':
 						('univention-app', 'info', ),
 					})
 
