@@ -77,12 +77,11 @@ if __name__ == '__main__':
 	parser.add_option("-c", "--category", dest="category",
 						help="specify category", metavar="CATEGORY",
 						default='*')
-	parser.add_option("-f", "--folder", dest="gofolder",
-						help="go to usi folder", metavar="FOLDER",
-						default='0')
+	parser.add_option("-f", "--folder", dest="gofolder", default=False,
+						help="go to usi folder", metavar="FOLDER")
 	parser.add_option("-n", "--noskip",
 						action="store_false", dest="skip_empty", default=True,
-						help="skip empty categories")
+						help="skip empty categories", metavar="SKIPCAT")
 
 	(options, args) = parser.parse_args()
 	if args and not options.usifolder:
