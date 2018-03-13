@@ -472,10 +472,13 @@ def checkMaintenance():
 	''' Check if UCS-Version is in maintenance '''
 	if ucr.get('server/role') != 'ucc':
 		ucs_ver = ucr.get('version/version') + '-' + ucr.get('version/patchlevel')
+		ucs_lic = ucr.get('license/base')
+		# TODO: check depending on License
 		try:
 			maint_url = "http://updates.software-univention.de/download/ucs-maintenance/" + ucs_ver + ".yaml"
 			data = urllib2.urlopen(maint_url).read()
 			maint_info = dict((k.strip(), v.strip()) for k, v in (line.split(':', 1) for line in data.split("\n") if line))
+			# if maint_info['extended'].lower() not in ['true', '1']:
 			if maint_info['maintained'].lower() not in ['true', '1']:
 				tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
 				print "\033[93mPlease note, system is no longer maintained, security updates are no longer available for current UCS Version %s\033[0m" % (ucs_ver)
@@ -695,6 +698,7 @@ def collectCommandData():
 					('ls -1d', '/var/lib/samba*/private.before-ad-takeover-*', ),
 				'univentionService':
 					('univention-ldapsearch', '-xLLL', '(|(univentionService=S4-Connector)(univentionService=Samba 4))', 'univentionService', ),
+					# ('univention-ldapsearch', '-xLLL', '(|(univentionService=S4-Connector)(univentionService=Samba 4))', 'univentionService univentionObjectType univentionServerRole univentionOperatingSystem univentionOperatingSystemVersion', ),
 				}
 	# Commands depending on samba version
 	if sambaDomainVersion == 3:
@@ -800,7 +804,8 @@ def univentionSystemInfo():
 	print 'done.'
 
 
-def rotatedLogs(DefaultMaxLineCount):
+def rotatedLogs(LogDepth, DefaultMaxLineCount):
+	# Possible RegEx: '/\/var\/log\/usi_cleanup.log(.[0-LogDepth](.gz)?)?/g'
 	FilePatterns = [
 		('/var/log/apache/*', DefaultMaxLineCount),
 		('/var/log/apache2/*', DefaultMaxLineCount),
@@ -950,7 +955,7 @@ def tryDelete(filename):
 
 
 def gpg(archiveFileName):
-	_sprint('Encrypting file: ')
+	print("Encrypting file..."),
 	keyringFileName = tempfile.mkstemp(prefix='univention-support-info-keyring.', suffix='.gpg')[1]
 	secringFileName = tempfile.mkstemp(prefix='univention-support-info-secring.', suffix='.gpg')[1]
 	trustdbFileName = tempfile.mkstemp(prefix='univention-support-info-trustdb.', suffix='.gpg')[1]
@@ -959,7 +964,7 @@ def gpg(archiveFileName):
 	gpgBase = ('gpg',
 			   '--batch', '--quiet', '--no-tty',
 			   '--with-colons', '--utf8-strings',
-			   '--no-auto-check-trustdb', '--no-auto-key-locate', '--no-use-agent',
+			   '--no-auto-check-trustdb', '--no-auto-key-locate',
 			   '--no-options',
 			   '--no-random-seed-file',
 			   '--trust-model','always',
@@ -972,13 +977,14 @@ def gpg(archiveFileName):
 	gpgEncrypt = gpgBase + ('--recipient', fingerprint,
 							'--encrypt', archiveFileName,
 							)
+	# Popen is a function above which injects the Input to the called process as "human" input
 	(exitcode, stdout, stderr, ) = Popen(gpgImport, Input=keyData)
 	if exitcode:
-		print 'gpg-import failed with %s' % exitcode
+		print("gpg-import failed with %s" % (exitcode))
 		if stdout:
-			print 'stdout: ' + repr(stdout)
+			print("stdout: %s" % repr(stdout))
 		if stderr:
-			print 'stderr: ' + repr(stderr)
+			print("stderr: %s" % repr(stderr))
 		tryDelete(keyringFileName)
 		tryDelete(keyringFileName + '~')
 		tryDelete(secringFileName)
@@ -987,11 +993,11 @@ def gpg(archiveFileName):
 		return
 	(exitcode, stdout, stderr, ) = Popen(gpgEncrypt)
 	if exitcode:
-		print 'gpg-encrypt failed with %s' % exitcode
+		print("gpg-encrypt failed with %s" % (exitcode))
 		if stdout:
-			print 'stdout: ' + repr(stdout)
+			print("stdout: " % repr(stdout))
 		if stderr:
-			print 'stderr: ' + repr(stderr)
+			print("stderr: %s" % repr(stderr))
 		tryDelete(keyringFileName)
 		tryDelete(keyringFileName + '~')
 		tryDelete(secringFileName)
@@ -1003,7 +1009,7 @@ def gpg(archiveFileName):
 	tryDelete(secringFileName)
 	tryDelete(trustdbFileName)
 	os.chmod(gpgFileName, stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
-	print 'done.'
+	print("done.")
 	return gpgFileName
 
 
@@ -1037,15 +1043,16 @@ def prepareEnvironment():
 		f = open(os.path.join(env['HOME'], '.toprc'), 'w')
 		f.write(toprc)
 		f.close()
+		os.mkdir("%s/.gnupg" % (env['HOME']))
 	except (OSError, IOError, ):
 		pass
 
 
 def cleanup():
-	shutil.rmtree(env['HOME'])
+	shutil.rmtree(env['HOME'], True)
 
 
-def main(encrypt=False):
+def main(options):
 	checkForRoot()
 	global archive, env, sambaDomainVersion
 	prepareArchive()
@@ -1068,32 +1075,33 @@ def main(encrypt=False):
 	atJobs()
 	certificateValidities()
 	univentionSystemInfo()
-	rotatedLogs(1000)
+	if options.fullLogs:
+		rotatedLogs("*", 1000)
+	else:
+		rotatedLogs("(.[0-2](.gz)?)?", 1000)
 	checkEntryUUID()
 	# Place new calls above this line
 
 	closeArchive()
-	print 'Data collection completed.'
-	print
-	print
-	if encrypt:
+	print("Data collection completed.\n")
+
+	if options.encrypt:
 		gpgArchiveFileName = gpg(archiveFileName)
 		if gpgArchiveFileName:
-			print 'The encrypted data can be found here:'
-			print '    ' + gpgArchiveFileName
-			print ' '
+			print("The encrypted data can be found here:\n\t%s\n" % (gpgArchiveFileName))
 		else:
-			print 'WARNING: The data could not be encrypted!'
+			print("WARNING: The data could not be encrypted!")
 		print
-		print 'The unencrypted data can be found here:'
+		print("The unencrypted data can be found here:")
 	else:
-		print 'The data can be found here:'
-	print '    ' + archiveFileName
+		print("The data can be found here:")
+	print("\t%s" % (archiveFileName))
 	cleanup()
 
 if __name__ == "__main__":
 	parser = optparse.OptionParser()
 	parser.add_option('--encrypt', action='store_true', dest='encrypt', default=False, help='encrypt data (can only be decrypted by Univention support)')
+	parser.add_option('--full-logs', action='store_true', dest='fullLogs', default=False, help='collect also rotated logfiles')
 	parser.usage = '\n'.join(('%prog [options]',
 							  'collect system information',
 							  '',
@@ -1105,4 +1113,4 @@ if __name__ == "__main__":
 		parser.print_help()
 		sys.exit(0)
 
-	main(options.encrypt)
+	main(options)
