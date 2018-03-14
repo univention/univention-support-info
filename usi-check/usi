@@ -4,26 +4,21 @@ GPGPASSWDFILE="${HOME}/.gnupg/support.pw"
 
 ARCHIVE=$1
 if [ -z "$ARCHIVE" ]; then
-	ARCHIVE="$(ls univention-support-info-*.tar.bz2 univention-support-info-*.tar.bz2.gpg upload_*.bz2 upload_*.asc upload_*.bin 2>/dev/null)"
+	ARCHIVE="$( ls univention-support-info-*.tar.bz2 univention-support-info-*.tar.bz2.gpg upload_*.bz2 upload_*.asc upload_*.bin upload_*.unknown 2>/dev/null )"
 fi
 
 for A in $ARCHIVE; do
 	if [ -r "$A" ]; then
 		GPGA=""
-		case $A in
-			*.gpg)
-				GPGA=$A
-				A="$(basename $GPGA .gpg).tar.bz2"
-				;;
-			*.asc)
-				GPGA=$A
-				A="$(basename $GPGA .asc).tar.bz2"
-				;;
-			*.bin)
-				GPGA=$A
-				A="$(basename $GPGA .bin).tar.bz2"
-				;;
-		esac
+
+		# reliable detect gpg encrypted files
+		fileType=$( file -b "${A}" | awk -F- '{print $1}' | sed 's/^ //;s/ $//' )
+		if [ "PGP RSA encrypted session key" == "$fileType" ]; then
+			GPGA=${A}
+			A="$(basename $GPGA .gpg)"
+			[[ "$A"  != *.tar.bz2 ]] && A="${A}.tar.bz2"
+		fi
+
 		# decrypt gpg file
 		if [ -n "$GPGA" ]; then
 			if [ ! -r $GPGPASSWDFILE ]; then
@@ -31,35 +26,48 @@ for A in $ARCHIVE; do
 				echo "Please add a file \"$GPGPASSWDFILE\" containing the passphrase for the support gpg key"
 				exit 1
 			fi
-			## instead using the passphrase file itself...
-			# gpg --no-use-agent --passphrase-file $GPGPASSWDFILE -d $GPGA > $A
 
-			## parse it and try all passwords inside (line by line)
-			ret=-1
+			# parse it and try all passwords inside (line by line)
+			encret=-1
 			while IFS='' read -r PASSPHRASE || [[ -n "$PASSPHRASE" ]]; do
-				gpg --quiet --no-use-agent --passphrase $PASSPHRASE -d $GPGA > $A
-				ret=$?
-				if [ $ret -eq 0 ]; then
+				gpg --quiet --passphrase $PASSPHRASE -d $GPGA > $A
+				encret=$?
+				if [ $encret -eq 0 ]; then
 					break
-				elif [ $ret -eq 2 ]; then
+				elif [ $encret -eq 2 ]; then
 					echo -e "\nusi: Probably wrong passphrase! Trying next key in file '$GPGPASSWDFILE'..."
 				fi
 			done <"$GPGPASSWDFILE"
-			if [ $ret -eq 0 ]; then
-				# rm $GPGA
-				echo -e "will removing $GPGA"
-			fi
 		fi
 		# extract archive
 		usiname="$(tar -tf $A | head -1 | cut -d"/" -f1)"
+		usifolder="$( tar -tf $A | head -1 | sed 's/univention-support-info-//;s/Z\/.*$//' )"
 		tar -xjf $A
-		if [ $? -eq 0 -a -z "$GPGA" ]; then
-			# delete archive
-			rm $A
-		elif [ $? -eq 0 -a -n "$GPGA" ]; then
-			# don't delete archive if it was encrypted
-			mv "$A" "decrypted_${A}"
+		tarret=$?
+
+		# simple folder name
+		if [ -f "univention-support-info" ]; then
+			echo "ERR: There is already a file named 'univention-support-info'!"
+			exit 3
+		elif [ ! -d "univention-support-info" ]; then
+			mkdir univention-support-info
 		fi
-		usi-check -u "$(pwd)""/"$usiname
+		mv "${usiname}" "univention-support-info/${usifolder}"
+
+		# cleanup
+		if [ $tarret -eq 0 -a -z "$GPGA" ]; then
+			# delete archive
+			echo -e "removing '${A}'"
+			rm "${A}"
+		elif [ $tarret -eq 0 -a -n "$GPGA" ]; then
+			# don't delete archive if it was encrypted
+			echo -e "keeping '${A}'"
+		fi
+		if [ $encret -eq 0 ]; then
+			echo -e "removing '${GPGA}'"
+			rm "${GPGA}"
+		fi
+
+		usi-check -u "$( pwd )""/univention-support-info/${usifolder}"
 	fi
 done
