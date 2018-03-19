@@ -22,6 +22,7 @@ if 'PYTHONPATH' not in ENV:
 else:
 	ENV['PYTHONPATH'] += os.pathsep + LIBFOLDER
 
+
 class Test:
 	def __init__(self, script=None, category=None, usi=None, executed=False, result=None, exitcode=None):
 		self.script = script
@@ -34,27 +35,27 @@ class Test:
 	def __str__(self):
 		return self.category + '/' + self.script + ': ' + repr(self.result)
 
-	def run(self):
+	def run(self, verbose):
 		self.executed = True
-		filename = os.path.join( TESTFOLDER, self.category, self.script )
+		filename = os.path.join(TESTFOLDER, self.category, self.script)
 		args = self.usi
 		process = subprocess.Popen([filename, args], env=ENV, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
 		stderr = process.stderr.read()
-		#FIXME: Only print stderr in verbose mode
-		if stderr:
-			sys.stderr.write( self.script + ':\n' )
-			sys.stderr.write( ''.join(stderr) )
+		# FIXME: Only print stderr in verbose mode
+		if stderr and verbose:
+			sys.stderr.write(self.script + ':\n')
+			sys.stderr.write(''.join(stderr))
 
 		stdout = process.stdout.read()
 		process.communicate()[0]
 		self.exitcode = process.returncode
 		self.result = stdout
 
-	def report(self):
-		if self.executed and self.exitcode != 0:
-			print self.script
+	def report(self, verbose):
+		if self.executed and (self.exitcode != 0 or verbose):
+			print(self.script)
 			for line in self.result.split('\n'):
-				print '  ' + str(line.rstrip())
+				print("  %s" % (line.rstrip()))
 
 
 def getTests(category='*'):
@@ -78,10 +79,11 @@ if __name__ == '__main__':
 						help="specify category", metavar="CATEGORY",
 						default='*')
 	parser.add_option("-f", "--folder", dest="gofolder", default=False,
-						help="go to usi folder", metavar="FOLDER")
-	parser.add_option("-n", "--noskip",
-						action="store_false", dest="skip_empty", default=True,
-						help="skip empty categories", metavar="SKIPCAT")
+				help="go to usi folder", metavar="FOLDER")
+	parser.add_option("-n", "--noskip", action="store_false", dest="skip_empty",
+				default=True, help="dont't skip successful test", metavar="SKIPTEST")
+	parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
+				default=False, help="be verbose", metavar="DEBUG")
 
 	(options, args) = parser.parse_args()
 	if args and not options.usifolder:
@@ -90,15 +92,17 @@ if __name__ == '__main__':
 		options.usifolder = os.getcwd()
 	options.usifolder = os.path.join(os.path.realpath(options.usifolder))
 
-	print 'Support-Info-Archiv report for %s\n' % options.usifolder
+	print("Support-Info-Archiv report for '%s'\n" % (options.usifolder))
 	last_cat = ''
 	for test in getTests(options.category):
-		test.run()
+		if options.verbose:
+			print("running test '%s'..." % (test.script))
+		test.run(options.verbose)
 		if test.exitcode > 0 or not options.skip_empty:
 			if last_cat != test.category:
 				print("\033[36;1mCategory: %s\033[0m" % (test.category))
 				last_cat = test.category
-			test.report()
+			test.report(options.verbose)
 
 	if options.gofolder:
 		os.chdir(options.usifolder)
