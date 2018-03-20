@@ -63,7 +63,7 @@ for A in $ARCHIVE; do
 			# don't delete archive if it was encrypted
 			echo -e "keeping '${A}'"
 		fi
-		if [ $encret -eq 0 ]; then
+		if [ -n ${encret+x} -a ${encret} -eq 0 ]; then
 			echo -e "removing '${GPGA}'"
 			rm "${GPGA}"
 		fi
