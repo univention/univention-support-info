@@ -7,5 +7,5 @@ if os.stat("%s/info/dpkg--audit" % sys.argv[1]).st_size == 0:
 	sys.exit(0)
 	
 else:
-	print "Corrupt Package Status"
+	print "Corrupt Package Status. Check dpkg--audit"
 	sys.exit(1)
