@@ -5,7 +5,7 @@ then
 	status="OK"
 	exitcode=0
 else
-	status="Modified Templates Found"
+	status="Modified Templates Found. Check info/check-templates"
 	exitcode=1
 fi
 
