@@ -14,11 +14,13 @@ function quit() {
 
 
 if [ -z $nID ]; then
-	result="${result}No notifier ID}\n"
+	result="${result}No notifier ID in info/notifierID\n"
+	# Well, what does it mean? Not running?
 	exitcode=1
 fi
 if [ -z $lID ]; then
-	result="${result}No listener ID\n"
+	result="${result}No listener ID in info/listenerID\n"
+	# Well, what does it mean? Not running?
 	exitcode=1
 fi
 if [ $lBC -eq 0 ]; then

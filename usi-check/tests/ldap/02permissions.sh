@@ -6,7 +6,7 @@
 
 if [ "$(grep "Permission denied" $1/info/univention-license-check)" ];
 then
-	result="Wrong LDAP permissions for machine account!"
+	result="Wrong LDAP permissions for machine account to test license [info/univention-license-check]!"
 	exitcode=1
 else
 	result="LDAP permissions okay"
