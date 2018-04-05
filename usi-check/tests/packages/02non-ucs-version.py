@@ -27,7 +27,8 @@ def in_whitelist(pkgname):
 	return False
 
 odd_packages = []
-if (ucs_version != '4.2'):
+# if (ucs_version != '4.2'):
+if (ucs_version not in ['4.2', '4.3']):
 	with open( os.path.join( sys.argv[1], 'info', 'dpkg-l'), 'r') as infile:
 		for line in infile:
 			if not line.startswith('install'):
