@@ -10,7 +10,7 @@ fi
 if [ -d "$ARCHIVE" ]; then
 	usi-check -u "$( pwd )""$ARCHIVE"
 
-else 
+else
 
 	for A in $ARCHIVE; do
 		if [ -r "$A" ]; then
@@ -35,7 +35,7 @@ else
 				# parse it and try all passwords inside (line by line)
 				encret=-1
 				while IFS='' read -r PASSPHRASE || [[ -n "$PASSPHRASE" ]]; do
-					gpg --quiet --passphrase $PASSPHRASE -d $GPGA > $A
+					gpg --quiet --passphrase "$PASSPHRASE" -d "$GPGA" > "$A"
 					encret=$?
 					if [ $encret -eq 0 ]; then
 						break
@@ -43,6 +43,11 @@ else
 						echo -e "\nusi: Probably wrong passphrase! Trying next key in file '$GPGPASSWDFILE'..."
 					fi
 				done <"$GPGPASSWDFILE"
+				if [ ! -s "$A" ]; then
+					echo -e "Decryption of Archive '${GPGA}' failed!\nDeleting empty file '$A'."
+					rm "$A"
+					exit 1
+				fi
 			fi
 			# extract archive
 			usiname="$(tar -tf $A | head -1 | cut -d"/" -f1)"
@@ -60,20 +65,22 @@ else
 			mv "${usiname}" "univention-support-info/${usifolder}"
 
 			# cleanup
-			if [ $tarret -eq 0 -a -z "$GPGA" ]; then
+			if [ $tarret -eq 0 ] && [ -z "$GPGA" ]; then
 				# delete archive
 				echo -e "removing '${A}'"
 				rm "${A}"
-			elif [ $tarret -eq 0 -a -n "$GPGA" ]; then
+			elif [ $tarret -eq 0 ] && [ -n "$GPGA" ]; then
 				# don't delete archive if it was encrypted
 				echo -e "keeping '${A}'"
 			fi
-			if [ -n ${encret+x} -a ${encret} -eq 0 ]; then
+			if [ -n ${encret+x} ] && [ ${encret} -eq 0 ]; then
 				echo -e "removing '${GPGA}'"
 				rm "${GPGA}"
 			fi
 
-			usi-check -u "$( pwd )""/univention-support-info/${usifolder}"
+			if [ -n "$( whereis usi-check | cut -d' ' -f2 )" ]; then
+				usi-check -u "$( pwd )""/univention-support-info/${usifolder}"
+			fi
 		fi
 	done
 fi
