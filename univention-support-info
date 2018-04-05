@@ -253,6 +253,7 @@ toprc = '\n'.join(('RCfile for "top with windows"		   # shameless braggin\'',
 
 import cStringIO
 import glob
+import re
 import gzip
 import optparse
 import os
@@ -375,7 +376,7 @@ def addFile(name, size, fileobj):
 		print 'WARNING: failed to add %r: error=%r' % (fileobj, ex)
 
 
-def addFileByPath(filename):
+def addFileByPath(filename, flat):
 	if filename.startswith('/proc/'):
 		# This is a /proc/ file, os.stat(filename).st_size will always return 0
 		tmpf = tempfile.mkstemp(prefix='univention-support-info.')[1]
@@ -383,7 +384,10 @@ def addFileByPath(filename):
 			shutil.copy(filename, tmpf)
 		except (OSError, IOError), error:
 			error = '\n'.join(map(str, error.args))
-			addFile('files/' + filename.strip('/').replace('/', '_') + '.ERROR', len(error), cStringIO.StringIO(error))
+			if flat:
+				addFile('files/' + filename.strip('/').replace('/', '_') + '.ERROR', len(error), cStringIO.StringIO(error))
+			else:
+				addFile('files/' + filename.strip('/') + '.ERROR', len(error), cStringIO.StringIO(error))
 			os.unlink(tmpf)
 		filesize = os.stat(tmpf).st_size
 		os.unlink(tmpf)
@@ -397,30 +401,43 @@ def addFileByPath(filename):
 		fileobj = open(filename, 'rb')
 	except (OSError, IOError), error:
 		error = '\n'.join(map(str, error.args))
-		addFile('files/' + filename.strip('/').replace('/', '_') + '.ERROR', len(error), cStringIO.StringIO(error))
+		if flat:
+			addFile('files/' + filename.strip('/').replace('/', '_') + '.ERROR', len(error), cStringIO.StringIO(error))
+		else:
+			addFile('files/' + filename.strip('/') + '.ERROR', len(error), cStringIO.StringIO(error))
 	else:
-		addFile('files/' + filename.strip('/').replace('/', '_'), filesize, fileobj)
+		# addFile('files/' + filename.strip('/').replace('/', '_'), filesize, fileobj)
+		addFile('files/' + filename.strip('/'), filesize, fileobj)
 		fileobj.close()
 
 
-def certificateValidity(CertificatePath):
+def certificateValidity(CertificatePath, flat):
 	try:
 		import M2Crypto
 	except ImportError, error:
 		error = '\n'.join(map(str, error.args))
-		addFile('info/ssl/' + CertificatePath.strip('/').replace('/', '_') + '.ERROR', len(error), cStringIO.StringIO(error))
+		if flat:
+			addFile('info/ssl/' + CertificatePath.strip('/').replace('/', '_') + '.ERROR', len(error), cStringIO.StringIO(error))
+		else:
+			addFile('info/ssl/' + CertificatePath.strip('/') + '.ERROR', len(error), cStringIO.StringIO(error))
 		return
 
 	try:
 		cert = M2Crypto.X509.load_cert(CertificatePath)
 		validity = '%s\nNot Before: %s\nNot After : %s\n' % (CertificatePath, cert.get_not_before(), cert.get_not_after(), )
-		addFile('info/ssl/' + CertificatePath.strip('/').replace('/', '_'), len(validity), cStringIO.StringIO(validity))
+		if flat:
+			addFile('info/ssl/' + CertificatePath.strip('/').replace('/', '_'), len(validity), cStringIO.StringIO(validity))
+		else:
+			addFile('info/ssl/' + CertificatePath.strip('/'), len(validity), cStringIO.StringIO(validity))
 	except (OSError, IOError, M2Crypto.X509.X509Error), error:
 		error = '\n'.join(map(str, error.args))
-		addFile('info/ssl/' + CertificatePath.strip('/').replace('/', '_') + '.ERROR', len(error), cStringIO.StringIO(error))
+		if flat:
+			addFile('info/ssl/' + CertificatePath.strip('/').replace('/', '_') + '.ERROR', len(error), cStringIO.StringIO(error))
+		else:
+			addFile('info/ssl/' + CertificatePath.strip('/') + '.ERROR', len(error), cStringIO.StringIO(error))
 
 
-def certificateValidities():
+def certificateValidities(flat):
 	_sprint('Checking certificate validity: ')
 	CertificatePatterns = [
 		'/etc/univention/ssl/*.*/cert.pem',
@@ -428,11 +445,11 @@ def certificateValidities():
 		]
 	for CertificatePattern in CertificatePatterns:
 		for CertificatePath in glob.glob(CertificatePattern):
-			certificateValidity(CertificatePath)
+			certificateValidity(CertificatePath, flat)
 	print 'done.'
 
 
-def simpleFiles():
+def simpleFiles(flat):
 	# add S4-Connector Mapping (BUG 40571)
 	# add shares.conf.d/*
 	# /boot/config-*, /etc/crontab, /var/spool/cron/**, removed and add /proc/modules (BUG 35075)
@@ -490,7 +507,7 @@ def simpleFiles():
 	_sprint('Collecting files: ')
 	for Filename in sorted(list(Files)):
 		if os.path.isfile(Filename):
-			addFileByPath(Filename)
+			addFileByPath(Filename, flat)
 			_sprint('.')
 	print 'done.'
 
@@ -595,18 +612,18 @@ def executeCommand(commandName, command, log_stderr=False):
 	return stdout
 
 
-def templateFiles():
+def templateFiles(flat):
 	_sprint('Searching for changed template files: ')
 	stdout = executeCommand('check-templates', ('find', '/etc/univention/templates/files/', '(', '-name', '*.dpkg-new', '-o', '-name', '*.dpkg-dist', ')', '-print0', ))
 	files = [templatefile for templatefile in stdout.split('\0') if templatefile]
 	message = ('Found %d:\n' % len(files)) + '\n'.join(files) + '\n'
 	addFile('info/check-templates', len(message), cStringIO.StringIO(message))
 	for templatefile in files:
-		addFileByPath(templatefile)
+		addFileByPath(templatefile, flat)
 		if templatefile.endswith('.dpkg-new'):
-			addFileByPath(templatefile[:-len('.dpkg-new')])
+			addFileByPath(templatefile[:-len('.dpkg-new')], flat)
 		elif templatefile.endswith('.dpkg-dist'):
-			addFileByPath(templatefile[:-len('.dpkg-dist')])
+			addFileByPath(templatefile[:-len('.dpkg-dist')], flat)
 		_sprint('.')
 	print 'done.'
 
@@ -837,32 +854,31 @@ def univentionSystemInfo():
 	print 'done.'
 
 
-def rotatedLogs(LogDepth, DefaultMaxLineCount):
-	# Possible RegEx: '/\/var\/log\/usi_cleanup.log(.[0-LogDepth](.gz)?)?/g'
-	FilePatterns = [
-		('/var/log/apache/%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/apache2/%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/auth.log%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/dpkg.log%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/mail.log%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/open-xchange/%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/samba/log.%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/kern%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/univention/%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/univention/ucc-clients/%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/univention/connector-s4.log%s' % LogDepth, 2000000),
-		('/var/log/apt/term.log%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/squid/%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/dansguardian/%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/squidguard/%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/daemon.log%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/syslog%s' % LogDepth, 2000000),
-		('/var/log/univention/system-stats.log%s' % LogDepth, 5000000),
-		('/var/log/freeradius/%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/cups/%s' % LogDepth, DefaultMaxLineCount),
-		('/var/log/installer/%s' % LogDepth, 2000000),
-		('/var/log/zarafa/%s' % LogDepth, 100000),
-		('/var/log/kopano/%s' % LogDepth, 100000),
+def rotatedLogs(regEx, DefaultMaxLineCount, flat):
+	DirectoryList = [
+		('/var/log/apache/', DefaultMaxLineCount),
+		('/var/log/apache2/', DefaultMaxLineCount),
+		('/var/log/auth.log', DefaultMaxLineCount),
+		('/var/log/dpkg.log', DefaultMaxLineCount),
+		('/var/log/mail.log', DefaultMaxLineCount),
+		('/var/log/open-xchange/', DefaultMaxLineCount),
+		('/var/log/samba/log.', DefaultMaxLineCount),
+		('/var/log/kern', DefaultMaxLineCount),
+		('/var/log/univention/', DefaultMaxLineCount),
+		('/var/log/univention/ucc-clients/', DefaultMaxLineCount),
+		('/var/log/univention/connector-s4.log', 2000000),
+		('/var/log/apt/term.log', DefaultMaxLineCount),
+		('/var/log/squid/', DefaultMaxLineCount),
+		('/var/log/dansguardian/', DefaultMaxLineCount),
+		('/var/log/squidguard/', DefaultMaxLineCount),
+		('/var/log/daemon.log', DefaultMaxLineCount),
+		('/var/log/syslog', 2000000),
+		('/var/log/univention/system-stats.log', 5000000),
+		('/var/log/freeradius/', DefaultMaxLineCount),
+		('/var/log/cups/', DefaultMaxLineCount),
+		('/var/log/installer/', 2000000),
+		('/var/log/zarafa/', 100000),
+		('/var/log/kopano/', 100000),
 		]
 	FullLogs = set((  # for these every available log-file shall be included
 		'/var/log/dpkg.log',
@@ -872,8 +888,18 @@ def rotatedLogs(LogDepth, DefaultMaxLineCount):
 	))
 	GzipSuffix = '.gz'
 	logs = {}
-	for FilePattern in [fp[0] for fp in FilePatterns]:
-		for filename in glob.glob(FilePattern):
+	for Entry in [fp[0] for fp in DirectoryList]:
+		if os.path.isdir(Entry):
+			FileList = ["%s%s" % (Entry, f, ) for f in os.listdir(Entry) if re.search(r"%s" % regEx, f)]
+		elif os.path.isfile(Entry):
+			entryPath = "%s/" % os.path.dirname(Entry)
+			entryFile = os.path.basename(Entry)
+			entryFilename = os.path.splitext(entryFile)[0]
+			FileList = ["%s%s" % (entryPath, f, ) for f in os.listdir(entryPath) if re.search(r"%s%s" % (entryFilename, regEx), f)]
+		else:
+			FileList = []
+		# for filename in glob.glob(FilePattern):
+		for filename in FileList:
 			if os.stat(filename).st_size <= 0 or os.path.isdir(filename):
 				# ignore 0 byte files
 				continue
@@ -908,7 +934,10 @@ def rotatedLogs(LogDepth, DefaultMaxLineCount):
 					logfile = open(path + GzipSuffix, 'rb')
 				except (OSError, IOError, ), error:
 					error = '\n'.join(map(str, error.args))
-					addFile('files/' + '%s_%d.stderr' % (logname.strip('/').replace('/', '_'), number, ), len(error), cStringIO.StringIO(error))
+					if flat:
+						addFile('files/' + '%s_%d.stderr' % (logname.strip('/').replace('/', '_'), number, ), len(error), cStringIO.StringIO(error))
+					else:
+						addFile('files/' + '%s_%d.stderr' % (logname.strip('/'), number, ), len(error), cStringIO.StringIO(error))
 					continue
 
 				# calc bytes and linecount of logfile
@@ -944,18 +973,25 @@ def rotatedLogs(LogDepth, DefaultMaxLineCount):
 					logfile = open(path, 'rb')
 			except (OSError, IOError, ), error:
 				error = '\n'.join(map(str, error.args))
-				addFile('files/' + '%s_%d.stderr' % (logname.strip('/').replace('/', '_'), nonemptyNumber, ), len(error), cStringIO.StringIO(error))
+				if flat:
+					addFile('files/' + '%s_%d.stderr' % (logname.strip('/').replace('/', '_'), nonemptyNumber, ), len(error), cStringIO.StringIO(error))
+				else:
+					addFile('files/' + '%s_%d.stderr' % (logname.strip('/'), nonemptyNumber, ), len(error), cStringIO.StringIO(error))
 				continue
 
 			# Add file to archive ...
-			addFile('files/' + '%s_%d' % (logname.strip('/').replace('/', '_'), nonemptyNumber, ), fileBytes, logfile)
-			# print 'Added as "%s_%d"' % (logname.strip('/').replace('/', '_'), nonemptyNumber, )
+			if flat:
+				addFile('files/' + '%s_%d' % (logname.strip('/').replace('/', '_'), nonemptyNumber, ), fileBytes, logfile)
+				## print 'Added as "%s_%d"' % (logname.strip('/').replace('/', '_'), nonemptyNumber, )
+			else:
+				addFile('files/' + '%s_%d' % (logname.strip('/'), nonemptyNumber, ), fileBytes, logfile)
+				# print 'Added as "%s_%d"' % (logname.strip('/'), nonemptyNumber, )
 			logfile.close()
 
-			if logname not in FullLogs and logLinecount > filter(lambda x: logname.startswith(x[0].replace('*', '')), FilePatterns)[0][1]:
+			if logname not in FullLogs and logLinecount > filter(lambda x: logname.startswith(x[0].replace('*', '')), DirectoryList)[0][1]:
 				break
 
-			_sprint('.')
+		_sprint('.')
 	print 'done.'
 
 
@@ -1100,18 +1136,20 @@ def main(options):
 	# Place new calls below this line
 	checkMaintenance()
 	collectCommandData()
-	simpleFiles()
+	simpleFiles(options.flatStruct)
 	licenseObject()
-	templateFiles()
+	templateFiles(options.flatStruct)
 	aptPackageList()
 	checkTransactionFile()
 	atJobs()
-	certificateValidities()
+	certificateValidities(options.flatStruct)
 	univentionSystemInfo()
 	if options.fullLogs:
-		rotatedLogs("*", 1000)
+		rotatedLogs(".*", 1000, options.flatStruct)
 	else:
-		rotatedLogs("(.[0-2](.gz)?)?", 1000)
+		logDepth = 2
+		rotatedLogs("(\.log(\.[0-%s](\.gz)?)?$|^log\.[^.]+(\.[0-%s](\.gz)?)?$)" % (logDepth, logDepth),
+			1000, options.flatStruct)
 	checkEntryUUID()
 	# Place new calls above this line
 
@@ -1135,6 +1173,7 @@ if __name__ == "__main__":
 	parser = optparse.OptionParser()
 	parser.add_option('--encrypt', action='store_true', dest='encrypt', default=False, help='encrypt data (can only be decrypted by Univention support)')
 	parser.add_option('--full-logs', action='store_true', dest='fullLogs', default=False, help='collect also rotated logfiles')
+	parser.add_option('--flat', action='store_true', dest='flatStruct', default=False, help='flatten the directry structure')
 	parser.usage = '\n'.join(('%prog [options]',
 							  'collect system information',
 							  '',
