@@ -260,6 +260,7 @@ import shutil
 import socket
 import stat
 import subprocess
+import threading
 import sys
 import tarfile
 import tempfile
@@ -290,14 +291,46 @@ timeString = time.strftime('%Y-%m-%d_%H-%M-%SZ', time.gmtime())
 hostname = socket.gethostname()
 
 
+class Command(object):
+	def __init__(self, cmd, Input):
+		self.cmd = cmd
+		self.Input = Input
+		self.process = None
+		self.outData = ""
+		self.errData = ""
 
-def Popen(CommandTuple, Input=None):
-	try:
-		process = subprocess.Popen(CommandTuple, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True, env=env)
-		(stdoutdata, stderrdata) = process.communicate(input=Input)
-		return (process.returncode, stdoutdata, stderrdata)
-	except (OSError, IOError), error:
-		return ('Could not execute %s: %s' % (repr(CommandTuple), repr(' '.join(map(str, error.args)))), '', '')
+	def run(self, timeout):
+		def target():
+			try:
+				self.process = subprocess.Popen(self.cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True, env=env)
+				(self.outData, self.errData) = self.process.communicate(input=self.Input)
+			except (OSError, IOError) as ex:
+				self.outData="Could not execute %s: %s" % (repr(self.cmd), repr(' '.join(map(str, ex.args))))
+
+		thread = threading.Thread(target=target)
+		thread.start()
+
+		thread.join(timeout)
+		if thread.is_alive():
+			self.process.terminate()
+			thread.join()
+		if self.process:
+			return (self.process.returncode, self.outData, self.errData)
+		else:
+			return (1, self.outData, self.errData)
+
+
+def Popen(CommandTuple, Input=None, timeout=30):
+	command = Command(CommandTuple, Input)
+	Result = command.run(timeout)
+	if Result[0] != 0:
+		tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
+		print >> tmpf, "Command: '%s'\nResult: '%s'" % (repr(CommandTuple), repr(Result))
+		if Result[0] == -15:
+			print >> tmpf, "Process has been terminated [timeout]"
+		print >> tmpf, ""
+		addFile('info/usi_runtime.log', None, tmpf)
+	return Result
 
 
 def _ldapsearchCommand():
@@ -807,29 +840,29 @@ def univentionSystemInfo():
 def rotatedLogs(LogDepth, DefaultMaxLineCount):
 	# Possible RegEx: '/\/var\/log\/usi_cleanup.log(.[0-LogDepth](.gz)?)?/g'
 	FilePatterns = [
-		('/var/log/apache/*', DefaultMaxLineCount),
-		('/var/log/apache2/*', DefaultMaxLineCount),
-		('/var/log/auth.log*', DefaultMaxLineCount),
-		('/var/log/dpkg.log*', DefaultMaxLineCount),
-		('/var/log/mail.log*', DefaultMaxLineCount),
-		('/var/log/open-xchange/*', DefaultMaxLineCount),
-		('/var/log/samba/log.*', DefaultMaxLineCount),
-		('/var/log/kern*', DefaultMaxLineCount),
-		('/var/log/univention/*', DefaultMaxLineCount),
-		('/var/log/univention/ucc-clients/*', DefaultMaxLineCount),
-		('/var/log/univention/connector-s4.log*', 2000000),
-		('/var/log/apt/term.log*', DefaultMaxLineCount),
-		('/var/log/squid/*', DefaultMaxLineCount),
-		('/var/log/dansguardian/*', DefaultMaxLineCount),
-		('/var/log/squidguard/*', DefaultMaxLineCount),
-		('/var/log/daemon.log*', DefaultMaxLineCount),
-		('/var/log/syslog*', 2000000),
-		('/var/log/univention/system-stats.log*', 5000000),
-		('/var/log/freeradius/*', DefaultMaxLineCount),
-		('/var/log/cups/*', DefaultMaxLineCount),
-		('/var/log/installer/*', 2000000),
-		('/var/log/zarafa/*', 100000),
-		('/var/log/kopano/*', 100000),
+		('/var/log/apache/%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/apache2/%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/auth.log%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/dpkg.log%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/mail.log%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/open-xchange/%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/samba/log.%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/kern%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/univention/%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/univention/ucc-clients/%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/univention/connector-s4.log%s' % LogDepth, 2000000),
+		('/var/log/apt/term.log%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/squid/%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/dansguardian/%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/squidguard/%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/daemon.log%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/syslog%s' % LogDepth, 2000000),
+		('/var/log/univention/system-stats.log%s' % LogDepth, 5000000),
+		('/var/log/freeradius/%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/cups/%s' % LogDepth, DefaultMaxLineCount),
+		('/var/log/installer/%s' % LogDepth, 2000000),
+		('/var/log/zarafa/%s' % LogDepth, 100000),
+		('/var/log/kopano/%s' % LogDepth, 100000),
 		]
 	FullLogs = set((  # for these every available log-file shall be included
 		'/var/log/dpkg.log',
