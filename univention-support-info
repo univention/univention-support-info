@@ -29,6 +29,7 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
+usiVersion = '55'
 
 fingerprint = '1EB89EEB365A84A65F95FB28CD78CD3C8F91B44F'
 # create with: gpg2 --armor --export --export-options export-minimal $fingerprint
@@ -879,6 +880,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, flat):
 		('/var/log/installer/', 2000000),
 		('/var/log/zarafa/', 100000),
 		('/var/log/kopano/', 100000),
+		('/var/log/libvirt', DefaultMaxLineCount),
 		]
 	FullLogs = set((  # for these every available log-file shall be included
 		'/var/log/dpkg.log',
@@ -1126,6 +1128,9 @@ def main(options):
 	global archive, env, sambaDomainVersion
 	prepareArchive()
 	prepareEnvironment()
+
+	# USI Version
+	addFile('info/usi_version', None, usiVersion)
 
 	# Check Samba Version
 	if executeCommand('samba4-pdc-dn', (_ldapsearchCommand(), '-xLLL', '(&(univentionService=Samba 4)(objectClass=univentionDomainController))', 'dn')):
