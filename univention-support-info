@@ -1130,7 +1130,7 @@ def main(options):
 	prepareEnvironment()
 
 	# USI Version
-	addFile('info/usi_version', None, usiVersion)
+	addFile('info/usi_version', len(usiVersion), cStringIO.StringIO(usiVersion))
 
 	# Check Samba Version
 	if executeCommand('samba4-pdc-dn', (_ldapsearchCommand(), '-xLLL', '(&(univentionService=Samba 4)(objectClass=univentionDomainController))', 'dn')):
