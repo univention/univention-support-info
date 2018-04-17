@@ -855,7 +855,7 @@ def univentionSystemInfo():
 	print 'done.'
 
 
-def rotatedLogs(regEx, DefaultMaxLineCount, flat):
+def rotatedLogs(regEx, DefaultMaxLineCount, options):
 	DirectoryList = [
 		('/var/log/apache/', DefaultMaxLineCount),
 		('/var/log/apache2/', DefaultMaxLineCount),
@@ -982,7 +982,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, flat):
 				continue
 
 			# Add file to archive ...
-			if flat:
+			if options.flatStruct:
 				addFile('files/' + '%s_%d' % (logname.strip('/').replace('/', '_'), nonemptyNumber, ), fileBytes, logfile)
 				## print 'Added as "%s_%d"' % (logname.strip('/').replace('/', '_'), nonemptyNumber, )
 			else:
@@ -990,7 +990,8 @@ def rotatedLogs(regEx, DefaultMaxLineCount, flat):
 				# print 'Added as "%s_%d"' % (logname.strip('/'), nonemptyNumber, )
 			logfile.close()
 
-			if logname not in FullLogs and logLinecount > filter(lambda x: logname.startswith(x[0].replace('*', '')), DirectoryList)[0][1]:
+                        if not options.fullLogs:
+                            if logname not in FullLogs and logLinecount > filter(lambda x: logname.startswith(x[0].replace('*', '')), DirectoryList)[0][1]:
 				break
 
 		_sprint('.')
@@ -1150,11 +1151,11 @@ def main(options):
 	certificateValidities(options.flatStruct)
 	univentionSystemInfo()
 	if options.fullLogs:
-		rotatedLogs(".*", 1000, options.flatStruct)
+		rotatedLogs(".*", 1000, options)
 	else:
 		logDepth = 2
 		rotatedLogs("(\.log(\.[0-%s](\.gz)?)?$|^log\.[^.]+(\.[0-%s](\.gz)?)?$)" % (logDepth, logDepth),
-			1000, options.flatStruct)
+			1000, options)
 	checkEntryUUID()
 	# Place new calls above this line
 
