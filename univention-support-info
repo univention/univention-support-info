@@ -880,7 +880,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 		('/var/log/installer/', 2000000),
 		('/var/log/zarafa/', 100000),
 		('/var/log/kopano/', 100000),
-		('/var/log/libvirt', DefaultMaxLineCount),
+		('/var/log/libvirt/', DefaultMaxLineCount),
 		]
 	FullLogs = set((  # for these every available log-file shall be included
 		'/var/log/dpkg.log',
