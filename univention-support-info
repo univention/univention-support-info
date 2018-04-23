@@ -541,7 +541,7 @@ def checkMaintenance():
 				addFile('info/maintenance', None, tmpf)
 		except (urllib2.URLError, IOError) as innerex:
 			tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
-			print "WARNING: Could NOT determine product maintenance. [%s]" % (innerex)
+			print "Warn: Can't reach univention server - product maintenance undetermined [%s]" % (innerex)
 			print >> tmpf, "Failed to check maintenance (%s)\ncurrent UCS Version %s" % (innerex, ucs_ver)
 			addFile('info/maintenance', None, tmpf)
 	else:
@@ -740,7 +740,7 @@ def collectCommandData():
 				'hostaccount-id':
 					('id', ucr.get('hostname') + '$', ),
 				'dig_AXFR':
-					('dig', '@'+ucr.get('nameserver1'), ucr.get('domainname'), '-t', 'AXFR'),
+					('dig', '@%s' % ucr.get('nameserver1'), ucr.get('domainname'), '-t', 'AXFR'),
 				'univention-connector-list-rejected':
 					('univention-connector-list-rejected', ),
 				'sharesec':
@@ -868,13 +868,13 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 		('/var/log/univention/', DefaultMaxLineCount),
 		('/var/log/univention/ucc-clients/', DefaultMaxLineCount),
 		('/var/log/univention/connector-s4.log', 2000000),
+		('/var/log/univention/system-stats.log', 5000000),
 		('/var/log/apt/term.log', DefaultMaxLineCount),
 		('/var/log/squid/', DefaultMaxLineCount),
 		('/var/log/dansguardian/', DefaultMaxLineCount),
 		('/var/log/squidguard/', DefaultMaxLineCount),
 		('/var/log/daemon.log', DefaultMaxLineCount),
 		('/var/log/syslog', 2000000),
-		('/var/log/univention/system-stats.log', 5000000),
 		('/var/log/freeradius/', DefaultMaxLineCount),
 		('/var/log/cups/', DefaultMaxLineCount),
 		('/var/log/installer/', 2000000),
