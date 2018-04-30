@@ -799,10 +799,12 @@ def collectCommandData():
 	# Commands depending on UCS-Version → UCS 4.2
 	if ucr.get ('version/version') >= '4.2':
 		commands.update({'journalctl':
-						('journalctl', '--since=yesterday', ),
-					'univention-app-info':
-						('univention-app', 'info', ),
-					})
+							('journalctl', '--since=yesterday', ),
+						'hostnamectl-status':
+							('hostnamectl', 'status', ),
+						'univention-app-info':
+							('univention-app', 'info', ),
+						})
 
 	_sprint('Collecting command output: ')
 	for commandName in commands:
