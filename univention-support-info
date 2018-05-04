@@ -865,7 +865,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 		('/var/log/dpkg.log', DefaultMaxLineCount),
 		('/var/log/mail.log', DefaultMaxLineCount),
 		('/var/log/open-xchange/', DefaultMaxLineCount),
-		('/var/log/samba/log.', DefaultMaxLineCount),
+		('/var/log/samba/', DefaultMaxLineCount),
 		('/var/log/kern', DefaultMaxLineCount),
 		('/var/log/univention/', DefaultMaxLineCount),
 		('/var/log/univention/ucc-clients/', DefaultMaxLineCount),
