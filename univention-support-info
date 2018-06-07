@@ -944,7 +944,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 					logfile = open(path + GzipSuffix, 'rb')
 				except (OSError, IOError, ), error:
 					error = '\n'.join(map(str, error.args))
-					if flat:
+					if options.flatStruct:
 						addFile('files/' + '%s_%d.stderr' % (logname.strip('/').replace('/', '_'), number, ), len(error), cStringIO.StringIO(error))
 					else:
 						addFile('files/' + '%s_%d.stderr' % (logname.strip('/'), number, ), len(error), cStringIO.StringIO(error))
@@ -983,7 +983,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 					logfile = open(path, 'rb')
 			except (OSError, IOError, ), error:
 				error = '\n'.join(map(str, error.args))
-				if flat:
+				if options.flatStruct:
 					addFile('files/' + '%s_%d.stderr' % (logname.strip('/').replace('/', '_'), nonemptyNumber, ), len(error), cStringIO.StringIO(error))
 				else:
 					addFile('files/' + '%s_%d.stderr' % (logname.strip('/'), nonemptyNumber, ), len(error), cStringIO.StringIO(error))
@@ -998,8 +998,8 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 				# print 'Added as "%s_%d"' % (logname.strip('/'), nonemptyNumber, )
 			logfile.close()
 
-                        if not options.fullLogs:
-                            if logname not in FullLogs and logLinecount > filter(lambda x: logname.startswith(x[0].replace('*', '')), DirectoryList)[0][1]:
+			if not options.fullLogs:
+				if logname not in FullLogs and logLinecount > filter(lambda x: logname.startswith(x[0].replace('*', '')), DirectoryList)[0][1]:
 				break
 
 		_sprint('.')

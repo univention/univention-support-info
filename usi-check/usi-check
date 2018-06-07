@@ -10,6 +10,7 @@ from optparse import OptionParser
 TESTS = []
 TESTFOLDER = 'tests'
 LIBFOLDER = 'lib'
+
 if not os.path.isdir(TESTFOLDER):
 	TESTFOLDER = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'tests')
 if not os.path.isdir(LIBFOLDER):
@@ -21,6 +22,34 @@ if 'PYTHONPATH' not in ENV:
 	ENV['PYTHONPATH'] = LIBFOLDER
 else:
 	ENV['PYTHONPATH'] += os.pathsep + LIBFOLDER
+
+
+def getUSILocation(currentDir):
+	if currentDir.endswith('univention-support-info'):
+		BASEDIR = currentDir
+	elif 'univention-support-info' in currentDir:
+		return currentDir
+	else:
+		BASEDIR = os.path.join(currentDir, 'univention-support-info')
+
+	if not os.path.isdir(BASEDIR):
+		if os.path.isdir(os.path.join(currentDir, 'files')) and os.path.isdir(os.path.join(currentDir, 'info')):
+			return currentDir
+		else:
+			#TODO giv better info on error
+			raise IOError('Base directory not found! [%s]' % (BASEDIR))
+
+	# get sub folders
+	dirs = [name for name in os.listdir(BASEDIR) if os.path.isdir(os.path.join(BASEDIR, name))]
+	if len(dirs) == 1:
+		return os.path.join(BASEDIR, dirs[0])
+	elif len(dirs) == 0:
+		print("ERROR - dirs: %s | BASEDIR: '%s'" % (repr(dirs), BASEDIR))
+	else:
+		# TODO selectable subdir
+		print("%s" % (repr(dirs)))
+
+	return BASEDIR
 
 
 class Test:
@@ -89,7 +118,7 @@ if __name__ == '__main__':
 	if args and not options.usifolder:
 		options.usifolder = args[0]
 	elif not args and not options.usifolder:
-		options.usifolder = os.getcwd()
+		options.usifolder = getUSILocation(os.getcwd())
 	options.usifolder = os.path.join(os.path.realpath(options.usifolder))
 
 	print("Support-Info-Archiv report for '%s'\n" % (options.usifolder))
