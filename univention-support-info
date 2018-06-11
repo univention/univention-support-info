@@ -326,12 +326,10 @@ def Popen(CommandTuple, Input=None, timeout=30):
 	command = Command(CommandTuple, Input)
 	Result = command.run(timeout)
 	if Result[0] != 0:
-		tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
-		print >> tmpf, "Command: '%s'\nResult: '%s'" % (repr(CommandTuple), repr(Result))
+		print >> usilog, "Command: '%s'\nResult: '%s'" % (repr(CommandTuple), repr(Result))
 		if Result[0] == -15:
-			print >> tmpf, "Process has been terminated [timeout]"
-		print >> tmpf, ""
-		addFile('info/usi_runtime.log', None, tmpf)
+			print >> usilog, "Process has been terminated [timeout]"
+		print >> usilog, ""
 	return Result
 
 
@@ -900,7 +898,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 	logs = {}
 	for Entry in [fp[0] for fp in DirectoryList]:
 		if os.path.isdir(Entry):
-			FileList = ["%s%s" % (Entry, f, ) for f in os.listdir(Entry) if re.search(r"%s" % regEx, f)]
+			FileList = ["%s%s" % (Entry, f, ) for f in os.listdir(Entry) if re.search(r"%s%s" % (os.path.splitext(f)[0], regEx), f)]
 		elif os.path.isfile(Entry):
 			entryPath = "%s/" % os.path.dirname(Entry)
 			entryFile = os.path.basename(Entry)
@@ -938,7 +936,6 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 			fileLinecount = 0
 			if number != -1:
 				path += '.%d' % number
-
 			if gzipped:
 				try:
 					logfile = open(path + GzipSuffix, 'rb')
@@ -1000,7 +997,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 
 			if not options.fullLogs:
 				if logname not in FullLogs and logLinecount > filter(lambda x: logname.startswith(x[0].replace('*', '')), DirectoryList)[0][1]:
-				break
+					break
 
 		_sprint('.')
 	print 'done.'
@@ -1117,6 +1114,7 @@ def prepareEnvironment():
 	env['LC_ALL'] = 'C'
 	env['COLUMNS'] = '250'
 	env['HOME'] = tempfile.mkdtemp(prefix='univention-support-info_')
+
 	try:
 		shutil.copy('/etc/skel/.bashrc', env['HOME'])
 		shutil.copy('/etc/skel/.profile', env['HOME'])
@@ -1134,12 +1132,15 @@ def cleanup():
 
 def main(options):
 	checkForRoot()
-	global archive, env, sambaDomainVersion
+	global archive, env, sambaDomainVersion, usilog
 	prepareArchive()
 	prepareEnvironment()
 
 	# USI Version
 	addFile('info/usi_version', len(usiVersion), cStringIO.StringIO(usiVersion))
+
+	# USI Error Log
+	usilog = tempfile.TemporaryFile(prefix='univention-support-info.')
 
 	# Check Samba Version
 	if executeCommand('samba4-pdc-dn', (_ldapsearchCommand(), '-xLLL', '(&(univentionService=Samba 4)(objectClass=univentionDomainController))', 'dn')):
@@ -1162,10 +1163,12 @@ def main(options):
 		rotatedLogs(".*", 1000, options)
 	else:
 		logDepth = 2
-		rotatedLogs("(\.log(\.[0-%s](\.gz)?)?$|^log\.[^.]+(\.[0-%s](\.gz)?)?$)" % (logDepth, logDepth),
-			1000, options)
+		rotatedLogs("((\.log)?(\.[0-%s](\.gz)?)?$)" % (logDepth), 1000, options)
 	checkEntryUUID()
 	# Place new calls above this line
+
+	# add USI Error Log
+	addFile('info/usi_runtime.log', None, usilog)
 
 	closeArchive()
 	print("Data collection completed.\n")
