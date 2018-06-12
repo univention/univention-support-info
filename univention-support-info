@@ -29,7 +29,7 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
-usiVersion = '57'
+usiVersion = '58'
 
 fingerprint = '1EB89EEB365A84A65F95FB28CD78CD3C8F91B44F'
 # create with: gpg2 --armor --export --export-options export-minimal $fingerprint
@@ -804,7 +804,9 @@ def collectCommandData():
 							('univention-app', 'info', ),
 						})
 
-	_sprint('Collecting command output: ')
+        _sprint('USI-Version: ' + usiVersion )
+        print
+        _sprint('Collecting command output: ')
 	for commandName in commands:
 		command = commands[commandName]
 		if type(command[0]) == tuple:

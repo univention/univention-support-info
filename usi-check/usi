@@ -73,7 +73,7 @@ else
 				# don't delete archive if it was encrypted
 				echo -e "keeping '${A}'"
 			fi
-			if [ -n "${encret}" ] && [ ${encret} -eq 0 ]; then
+			if [ -n "${encret+x}" ] && [ ${encret} -eq 0 ]; then
 				echo -e "removing '${GPGA}'"
 				rm "${GPGA}"
 			fi
