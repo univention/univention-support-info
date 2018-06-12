@@ -804,9 +804,7 @@ def collectCommandData():
 							('univention-app', 'info', ),
 						})
 
-        _sprint('USI-Version: ' + usiVersion )
-        print
-        _sprint('Collecting command output: ')
+	_sprint('Collecting command output: ')
 	for commandName in commands:
 		command = commands[commandName]
 		if type(command[0]) == tuple:
@@ -1137,12 +1135,11 @@ def main(options):
 	global archive, env, sambaDomainVersion, usilog
 	prepareArchive()
 	prepareEnvironment()
+	usilog = tempfile.TemporaryFile(prefix='univention-support-info.')
 
 	# USI Version
 	addFile('info/usi_version', len(usiVersion), cStringIO.StringIO(usiVersion))
-
-	# USI Error Log
-	usilog = tempfile.TemporaryFile(prefix='univention-support-info.')
+	print("USI Archiver Version \033[1m%s\033[0m\n" % (usiVersion))
 
 	# Check Samba Version
 	if executeCommand('samba4-pdc-dn', (_ldapsearchCommand(), '-xLLL', '(&(univentionService=Samba 4)(objectClass=univentionDomainController))', 'dn')):
