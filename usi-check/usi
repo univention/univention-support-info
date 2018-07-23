@@ -52,7 +52,7 @@ else
 			# extract archive
 			usiname="$(tar -tf $A | head -1 | cut -d"/" -f1)"
 			usifolder="$( tar -tf $A | head -1 | sed 's/univention-support-info-//;s/Z\/.*$//' )"
-			tar -xjf $A
+			tar -xjf $A --atime-preserve
 			tarret=$?
 
 			# simple folder name
