@@ -274,6 +274,9 @@ from distutils.spawn import find_executable
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, append=True)
 
+import logging
+logger = logging.getLogger('USI_DEBUG')
+
 import apt
 import apt_pkg
 
@@ -324,6 +327,7 @@ class Command(object):
 
 def Popen(CommandTuple, Input=None, timeout=30):
 	command = Command(CommandTuple, Input)
+	logger.debug("running Command '{}'...".format(repr(CommandTuple)))
 	Result = command.run(timeout)
 	if Result[0] != 0:
 		print >> usilog, "Command: '%s'\nResult: '%s'" % (repr(CommandTuple), repr(Result))
@@ -368,8 +372,10 @@ def addFile(name, size, fileobj):
 	info.size = size
 	info.name = 'univention-support-info-' + hostname + '-' + timeString + '/' + name
 	info.mode = stat.S_IRUSR
-	info.mtime = time.time()
+	# keep file timestamp
+	# info.mtime = time.time()
 	try:
+		logger.debug("adding file '{}'".format(info.name))
 		archive.addfile(info, fileobj)
 	except IOError, ex:
 		print 'WARNING: failed to add %r: error=%r' % (fileobj, ex)
@@ -530,8 +536,9 @@ def checkMaintenance():
 			# if maint_info['extended'].lower() not in ['true', '1']:
 			if maint_info['maintained'].lower() not in ['true', '1']:
 				tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
-				print "\033[93mPlease note, system is no longer maintained, security updates are no longer available for current UCS Version %s\033[0m" % (ucs_ver)
-				print >> tmpf, "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucs_ver)
+				miMsg = "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucs_ver)
+				print "\033[93m%s\033[0m" % (miMsg)
+				print >> tmpf, miMsg
 				addFile('info/maintenance', None, tmpf)
 			else:
 				tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
@@ -894,7 +901,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 		'/var/log/apt/term.log',
 		'/var/log/univention/updater.log',
 		'/var/log/univention/ad-takeover.log',
-                
+
 	))
 	GzipSuffix = '.gz'
 	logs = {}
@@ -1133,6 +1140,16 @@ def cleanup():
 
 
 def main(options):
+	stdlog = logging.StreamHandler()   # log to console
+	stdlog.setFormatter(logging.Formatter('%(asctime)s - %(filename)s [%(levelname)s] <%(funcName)s()>: %(message)s'))
+	logger.addHandler(stdlog)
+	if options.debug:
+		logger.setLevel(logging.DEBUG)
+	elif options.verbose:
+		logger.setLevel(logging.INFO)
+	else:
+		logger.setLevel(logging.WARNING)
+
 	checkForRoot()
 	global archive, env, sambaDomainVersion, usilog
 	prepareArchive()
@@ -1188,7 +1205,9 @@ def main(options):
 	cleanup()
 
 if __name__ == "__main__":
-	parser = optparse.OptionParser()
+	parser = optparse.OptionParser(version="%prog {}".format(usiVersion))
+	parser.add_option('--debug', action='store_true', dest='debug', default=False, help=optparse.SUPPRESS_HELP)
+	parser.add_option('--verbose', action='store_true', dest='verbose', default=False, help=optparse.SUPPRESS_HELP)
 	parser.add_option('--encrypt', action='store_true', dest='encrypt', default=False, help='encrypt data (can only be decrypted by Univention support)')
 	parser.add_option('--full-logs', action='store_true', dest='fullLogs', default=False, help='collect also rotated logfiles')
 	parser.add_option('--flat', action='store_true', dest='flatStruct', default=False, help='flatten the directry structure')
