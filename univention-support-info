@@ -29,7 +29,7 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
-usiVersion = '59'
+usiVersion = '60'
 
 fingerprint = '1EB89EEB365A84A65F95FB28CD78CD3C8F91B44F'
 # create with: gpg2 --armor --export --export-options export-minimal $fingerprint
@@ -908,6 +908,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 	for Entry in [fp[0] for fp in DirectoryList]:
 		if os.path.isdir(Entry):
 			FileList = ["%s%s" % (Entry, f, ) for f in os.listdir(Entry) if re.search(r"%s%s" % (os.path.splitext(f)[0], regEx), f)]
+                        logger.debug("Dir.Entry: '{0}' has Files '{1}'".format(Entry, FileList))
 		elif os.path.isfile(Entry):
 			entryPath = "%s/" % os.path.dirname(Entry)
 			entryFile = os.path.basename(Entry)
@@ -1005,8 +1006,14 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 			logfile.close()
 
 			if not options.fullLogs:
-				if logname not in FullLogs and logLinecount > filter(lambda x: logname.startswith(x[0].replace('*', '')), DirectoryList)[0][1]:
-					break
+                            logger.debug("*** LN: '{}' ***".format(logname))
+                            logger.debug("*** DL: '{}'\n***".format(DirectoryList))
+                            try:
+                                if logname not in FullLogs and logLinecount > filter(lambda x: logname.startswith(x[0].replace('*', '')), DirectoryList)[0][1]:
+                                    break
+                            except Exception as ex:
+                                logger.debug("EXCEPTION: {}".format(ex))
+                                continue
 
 		_sprint('.')
 	print 'done.'
@@ -1181,7 +1188,7 @@ def main(options):
 		rotatedLogs(".*", 1000, options)
 	else:
 		logDepth = 2
-		rotatedLogs("((\.(rep)?log)?(\.[0-%s](\.gz)?)?$)" % (logDepth), 1000, options)
+		rotatedLogs("((log\.)?|(\.log)?(\.[0-%s](\.gz)?)?$)" % (logDepth), 1000, options)
 	checkEntryUUID()
 	# Place new calls above this line
 
