@@ -29,7 +29,7 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
-usiVersion = '60'
+usiVersion = '61'
 
 fingerprint = '1EB89EEB365A84A65F95FB28CD78CD3C8F91B44F'
 # create with: gpg2 --armor --export --export-options export-minimal $fingerprint
@@ -528,21 +528,22 @@ def checkMaintenance():
 	if ucr.get('server/role') != 'ucc':
 		ucs_ver = ucr.get('version/version') + '-' + ucr.get('version/patchlevel')
 		ucs_lic = ucr.get('license/base')
-		# TODO: check depending on License
+		ldap_base = ucr.get('ldap/base')
+		# check depending on License
 		try:
 			maint_url = "http://updates.software-univention.de/download/ucs-maintenance/" + ucs_ver + ".yaml"
 			data = urllib2.urlopen(maint_url).read()
 			maint_info = dict((k.strip(), v.strip()) for k, v in (line.split(':', 1) for line in data.split("\n") if line))
-			# if maint_info['extended'].lower() not in ['true', '1']:
-			if maint_info['maintained'].lower() not in ['true', '1']:
-				tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
+
+			tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
+			# if maint_info['maintained'].lower() not in ['true', '1']:
+			if maint_info['maintained'].lower() in ['true', '1'] or ( maint_info['maintained'].lower() in ['extended', '1'] and ucs_lic == ldap_base ):
+				print >> tmpf, "maintenance ok\ncurrent UCS Version %s" % (ucs_ver)
+				addFile('info/maintenance', None, tmpf)
+			else:
 				miMsg = "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucs_ver)
 				print "\033[93m%s\033[0m" % (miMsg)
 				print >> tmpf, miMsg
-				addFile('info/maintenance', None, tmpf)
-			else:
-				tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
-				print >> tmpf, "maintenance ok\ncurrent UCS Version %s" % (ucs_ver)
 				addFile('info/maintenance', None, tmpf)
 		except (urllib2.URLError, IOError) as innerex:
 			tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
