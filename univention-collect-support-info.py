@@ -147,8 +147,8 @@ class Main(object):
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--upload-to-univention', action='store_true', help='Uploads and sends the file via mail to Univention.')
-	parser.add_argument('--sender', help='The mail address of the sender. If not given, no archive will be send to Univention.')
-	parser.add_argument('--recipient', help='Recipient of the mail (by default %(default)s).', default='feedback@univention.de')
+	parser.add_argument('--sender', help='The mail address of the sender. If not given, no archive can be send to Univention.')
+	parser.add_argument('--recipient', help='Recipient of the mail (by default %(default)s).', default='support@univention.de')
 	parser.add_argument('--add-to-ticket', metavar='ticket', dest='ticket', help='Adds the file to the ticket number instead of creating a new one.')
 	parser.add_argument('--copy-to-folder', metavar='folder', dest='folder', help='Copies a backup of the generated archives into the specified folder.')
 	parser.add_argument('--encrypt', action='store_true', help='Encrypt the archive and send only the encrypted version to Univention')
