@@ -5,7 +5,8 @@ then
 	status="OK"
 	exitcode=0
 else
-	status="Modified Templates Found. Check info/check-templates"
+	status="Modified Templates Found."
+	cat $1/info/check-templates
 	exitcode=1
 fi
 
