@@ -12,5 +12,13 @@ else
 	exitcode=1
 fi
 
+core=""
+core=($( grep "Core Edition" info/ucr-dump ))
+
+if [ $core == "" ]; then
+	status="${status}\e[1;31mCORE Edition!\e[0m"
+	exitcode=1
+fi
+
 echo -e "$status"
 exit $exitcode
