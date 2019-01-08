@@ -5,12 +5,11 @@ then
 	status="OK"
 	exitcode=0
 else
-	status="Modified Templates Found."
-	cat $1/info/check-templates
+	status="Modified Templates Found.\n$( cat $1/info/check-templates )"
 	exitcode=1
 fi
 
 result="$status"
 
-echo $result
+echo -e $result
 exit $exitcode
