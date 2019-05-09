@@ -531,12 +531,21 @@ import apt_pkg
 try:
 	from univention import config_registry
 except ImportError:
-	if os.path.isfile('/usr/share/pyshared/univention/config_registry.py'):
-		import imp
-		config_registry = imp.load_source('config_registry', '/usr/share/pyshared/univention/config_registry.py')
+	for path in ('/usr/share/pyshared', '/usr/lib/python2.7/dist-packages/'):
+		if os.path.isfile(os.path.join(path, 'univention/config_registry.py')):
+			import imp
+			config_registry = imp.load_source('config_registry', os.path.join(path, 'univention/config_registry.py'))
+			break
 	else:
-		sys.path.append('/usr/share/pyshared')
-		from univention import config_registry
+		for path in ('/usr/share/pyshared', '/usr/lib/python2.7/dist-packages/'):
+			sys.path.append(path)
+			try:
+				from univention import config_registry
+				break
+			except ImportError:
+				sys.path.pop()
+		else:
+			raise
 
 ucr = config_registry.ConfigRegistry()
 ucr.load()
