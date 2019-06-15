@@ -59,26 +59,40 @@ class Main(object):
 			print >> sys.stderr, 'Using cached Univention Support Info'
 
 	def run_script(self):
+		ceep = True
+		keep = self.args.keep
 		cmd = [USI_SCRIPT]
 		if self.args.encrypt:
 			cmd.append('--encrypt')
 		print >> sys.stderr, 'Starting Univention Support Info...'
 		sys.stderr.flush()
+
+		output = ""
 		process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=sys.stderr)
-		stdout, _ = process.communicate()
-		stdout = stdout.splitlines()
+		while True:
+			pout = process.stdout.readline()
+			if pout == '' and process.poll() is not None:
+				break
+			if pout:
+				if not self.args.quite:
+					sys.stderr.write(pout)
+					sys.stderr.flush()
+				output += pout
+		returncode = process.poll()
 		archives = []
-		for i, line in enumerate(stdout):
+		output = output.splitlines()
+		for i, line in enumerate(output):
 			if 'The encrypted data can be found here:' in line:
-				archives.append(stdout[i + 1].strip())
+				archives.append(line.split()[-1])
 			if 'The unencrypted data can be found here:' in line or 'The data can be found here:' in line:
-				archives.append(stdout[i + 1].strip())
+				archives.append(line.split()[-1])
+		# import pdb; pdb.set_trace()
 		if not archives:
 			print >> sys.stderr, 'No archive could be created!'
 			return 1
-		print >> sys.stderr, 'Univention Support Info created %r.' % (archives,)
+		# print >> sys.stderr, 'Univention Support Info created %r.' % (archives,)
 
-		returncode = 0
+		# returncode = 0
 		try:
 			if self.args.folder:
 				print >> sys.stderr, 'Copying archives to %s...' % (self.args.folder,)
@@ -87,6 +101,7 @@ class Main(object):
 						target = os.path.join(self.args.folder, os.path.basename(archive))
 						shutil.copyfile(archive, target)
 						os.chmod(target, 0o600)
+						ceep = False
 					except BaseException as exc:
 						print >> sys.stderr, 'Could not copy a backup of the archives: %s' % (exc,)
 						returncode = 1
@@ -98,6 +113,7 @@ class Main(object):
 					archive_id = self.upload_archive(archive)
 				except BaseException as exc:
 					print >> sys.stderr, 'Could not upload archive: %s' % (exc,)
+					keep = True
 					return 1
 
 				print >> sys.stderr, 'Archive has been uploaded with ID %s' % (archive_id,)
@@ -109,9 +125,13 @@ class Main(object):
 					except BaseException as exc:
 						print >> sys.stderr, 'The mail could not be send: %s' % (exc,)
 						returncode = 1
+			else:
+				keep = True
+
 		finally:
-			for archive in archives:
-				os.remove(archive)
+			if not keep and ceep:
+				for archive in archives:
+					os.remove(archive)
 
 		return returncode
 
@@ -152,6 +172,8 @@ if __name__ == '__main__':
 	parser.add_argument('--add-to-ticket', metavar='ticket', dest='ticket', help='Adds the file to the ticket number instead of creating a new one.')
 	parser.add_argument('--copy-to-folder', metavar='folder', dest='folder', help='Copies a backup of the generated archives into the specified folder.')
 	parser.add_argument('--encrypt', action='store_true', help='Encrypt the archive and send only the encrypted version to Univention')
+	parser.add_argument('--keep', action='store_true', help='Don\'t delete the archive afterwards.', default=False)
+	parser.add_argument('--quite', action='store_true', help='Almost no output', default=False)
 	args = parser.parse_args()
 	if os.getuid() != 0:
 		parser.error('Must be executed as root!')
