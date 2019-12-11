@@ -18,7 +18,7 @@ else
 
 			# reliable detect gpg encrypted files
 			fileType=$( file -b "${A}" | awk -F- '{print $1}' | sed 's/^ //;s/ $//' )
-			if [ "PGP RSA encrypted session key" == "$fileType" ]; then
+			if [ "PGP RSA encrypted session key" == "$fileType" -o "GPG encrypted data" == "$fileType" ]; then
 				GPGA=${A}
 				A="$(basename $GPGA .gpg)"
 				[[ "$A"  != *.tar.bz2 ]] && A="${A}.tar.bz2"
