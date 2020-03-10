@@ -29,7 +29,7 @@
 # License with the Debian GNU/Linux or Univention distribution in file
 # /usr/share/common-licenses/AGPL-3; if not, see
 # <http://www.gnu.org/licenses/>.
-usiVersion = '64'
+usiVersion = '65'
 
 fingerprint = '1EB89EEB365A84A65F95FB28CD78CD3C8F91B44F'
 # create with: gpg2 --armor --export --export-options export-minimal $fingerprint
@@ -1139,6 +1139,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 		('/var/log/messages', DefaultMaxLineCount),
 		('/var/log/syslog', 2000000),
 		('/var/log/apt/term.log', DefaultMaxLineCount),
+		('/var/log/univention/ucs-school-import', DefaultMaxLineCount),
 		('/var/log/univention/config-registry.replog', DefaultMaxLineCount),
 		('/var/log/univention/connector-s4.log', 2000000),
 		('/var/log/univention/system-stats.log', 5000000),
