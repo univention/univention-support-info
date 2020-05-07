@@ -9,6 +9,3 @@ fi
 if ! grep -xq "\[ -f ~/.bash_local \] && . ~/.bash_local" "$HOME/.bashrc"; then
 	echo -e "[ -f ~/.bash_local ] && . ~/.bash_local" >>"$HOME/.bashrc"
 fi
-
-# write new and old password to password file
-echo -ne "dt9jdvffTHMPjohFpYfy\nx53Ay2Fgc0Pn" >"${HOME}/.gnupg/support.pw"
