@@ -64,6 +64,10 @@ class Main(object):
 		cmd = [USI_SCRIPT]
 		if self.args.encrypt:
 			cmd.append('--encrypt')
+		if self.args.debug:
+			cmd.append('--debug')
+		if not self.args.quite:
+			cmd.append('--verbose')
 		print >> sys.stderr, 'Starting Univention Support Info...'
 		sys.stderr.flush()
 
@@ -82,9 +86,7 @@ class Main(object):
 		archives = []
 		output = output.splitlines()
 		for i, line in enumerate(output):
-			if 'The encrypted data can be found here:' in line:
-				archives.append(line.split()[-1])
-			if 'The unencrypted data can be found here:' in line or 'The data can be found here:' in line:
+			if 'univention-support-info-' in line:
 				archives.append(line.split()[-1])
 		# import pdb; pdb.set_trace()
 		if not archives:
@@ -174,6 +176,7 @@ if __name__ == '__main__':
 	parser.add_argument('--encrypt', action='store_true', help='Encrypt the archive and send only the encrypted version to Univention')
 	parser.add_argument('--keep', action='store_true', help='Don\'t delete the archive afterwards.', default=False)
 	parser.add_argument('--quite', action='store_true', help='Almost no output', default=False)
+	parser.add_argument('--debug', action='store_true', help='enable debug', default=False)
 	args = parser.parse_args()
 	if os.getuid() != 0:
 		parser.error('Must be executed as root!')
