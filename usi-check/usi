@@ -52,7 +52,11 @@ else
 			# extract archive
 			usiname="$(tar -tf $A | head -1 | cut -d"/" -f1)"
 			usifolder="$( tar -tf $A | head -1 | sed 's/univention-support-info-//;s/Z\/.*$//' )"
-			tar -xjf $A --atime-preserve
+			if [[ "$OSTYPE" == "darwin"* ]]; then
+				tar -xjf $A -p
+			else
+				tar -xjf $A --atime-preserve
+			fi
 			tarret=$?
 
 			# simple folder name
