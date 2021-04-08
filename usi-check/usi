@@ -1,5 +1,4 @@
 #!/bin/bash
-
 GPGPASSWDFILE="${HOME}/.gnupg/support.pw"
 
 ARCHIVE=$1
