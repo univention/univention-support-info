@@ -1196,7 +1196,7 @@ class Command(object):
 				self.process = subprocess.Popen(self.cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True, env=env)
 				(self.outData, self.errData) = self.process.communicate(input=self.Input)
 			except (OSError, IOError) as ex:
-				self.outData = "Could not execute %s: %s" % (repr(self.cmd), repr(' '.join(map(str, ex.args))))
+				self.outData = "Could not execute %r: %r" % (self.cmd, ' '.join(map(str, ex.args)))
 
 		thread = threading.Thread(target=target)
 		thread.start()
@@ -1216,7 +1216,7 @@ def Popen(CommandTuple, Input=None, timeout=30):
 	logger.debug("running Command '{}'...".format(repr(CommandTuple)))
 	Result = command.run(timeout)
 	if Result[0] != 0:
-		print("Command: '%s'\nResult: '%s'" % (repr(CommandTuple), repr(Result)), file=usilog)
+		print("Command: %r\nResult: %r" % (CommandTuple, Result), file=usilog)
 		if Result[0] == -15:
 			print("Process has been terminated [timeout]", file=usilog)
 		print("", file=usilog)
@@ -1235,6 +1235,10 @@ def U32(i):
 	Return i as an unsigned integer, assuming it fits in 32 bits.
 	If it's >= 2GB when viewed as a 32-bit unsigned int, return a long.
 	'''
+	try:
+		long
+	except NameError:
+		long = int  # python 3
 	if i < 0:
 		i += long(1) << 32
 	return i
@@ -1323,7 +1327,7 @@ def certificateValidity(CertificatePath, flat):
 
 
 def certificateValidities(flat):
-	sys.stdout.write('Checking certificate validity: ')
+	print('Checking certificate validity: ', end='')
 	sys.stdout.flush()
 	CertificatePatterns = [
 		'/etc/univention/ssl/*.*/cert.pem',
@@ -1390,12 +1394,12 @@ def simpleFiles(flat):
 			if Filename not in ExcludeFiles:
 				Files.add(Filename)
 
-	sys.stdout.write('Collecting files: ')
+	print('Collecting files: ', end='')
 	sys.stdout.flush()
 	for Filename in sorted(list(Files)):
 		if os.path.isfile(Filename):
 			addFileByPath(Filename, flat)
-			sys.stdout.write('.')
+			print('.', end='')
 			sys.stdout.flush()
 	print('done.')
 
@@ -1421,17 +1425,17 @@ def checkMaintenance():
 			tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
 			# if maint_info['maintained'].lower() not in ['true', '1']:
 			if maint_info['maintained'].lower() in ['true', '1'] or (maint_info['maintained'].lower() in ['extended', '1'] and ucs_lic == ldap_base):
-				print("maintenance ok\ncurrent UCS Version %s" % (ucs_ver), file=tmpf)
+				print("maintenance ok\ncurrent UCS Version %s" % (ucs_ver,), file=tmpf)
 				addFile('info/maintenance', None, tmpf)
 			else:
-				miMsg = "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucs_ver)
-				print("\033[93m%s\033[0m" % (miMsg))
+				miMsg = "Please note, system is no longer maintained, security updates are no longer available for current UCS Version %s" % (ucs_ver,)
+				print("\033[93m%s\033[0m" % (miMsg,))
 				sys.stdout.flush()
 				print(miMsg, file=tmpf)
 				addFile('info/maintenance', None, tmpf)
 		except (urllib2.URLError, IOError) as innerex:
 			tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
-			print("Warn: Can't reach univention server - product maintenance undetermined [%s]" % (innerex))
+			print("Warn: Can't reach univention server - product maintenance undetermined [%s]" % (innerex,))
 			sys.stdout.flush()
 			print("Failed to check maintenance (%s)\ncurrent UCS Version %s" % (innerex, ucs_ver), file=tmpf)
 			addFile('info/maintenance', None, tmpf)
@@ -1440,7 +1444,7 @@ def checkMaintenance():
 		tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
 		print("Could NOT determine product maintenance for UCC systems.")
 		sys.stdout.flush()
-		print("Could NOT determine product maintenance for UCC systems.)\ncurrent UCC Version %s" % (ucc_ver), file=tmpf)
+		print("Could NOT determine product maintenance for UCC systems.)\ncurrent UCC Version %s" % (ucc_ver,), file=tmpf)
 		addFile('info/maintenance', None, tmpf)
 
 
@@ -1472,7 +1476,7 @@ def checkEntryUUID():
 
 def aptPackageList():
 	"""List installed packages and their source repository."""
-	sys.stdout.write('Collecting package lists: ')
+	print('Collecting package lists: ', end='')
 	sys.stdout.flush()
 	cache = apt.Cache()
 
@@ -1498,7 +1502,7 @@ def aptPackageList():
 def executeCommand(commandName, command, log_stderr=False):
 	(exitcode, stdout, stderr, ) = Popen(command)
 	if exitcode or log_stderr:
-		if type(exitcode) is int:
+		if isinstance(exitcode, int):
 			stderr += '\nExitcode was %d\n' % exitcode
 		else:
 			stderr += exitcode + '\n'
@@ -1507,7 +1511,7 @@ def executeCommand(commandName, command, log_stderr=False):
 
 
 def templateFiles(flat):
-	sys.stdout.write('Searching for changed template files: ')
+	print('Searching for changed template files: ', end='')
 	sys.stdout.flush()
 	stdout = executeCommand('check-templates', ('find', '/etc/univention/templates/files/', '(', '-name', '*.dpkg-new', '-o', '-name', '*.dpkg-dist', ')', '-print0', ))
 	files = [templatefile for templatefile in stdout.split('\0') if templatefile]
@@ -1519,13 +1523,13 @@ def templateFiles(flat):
 			addFileByPath(templatefile[:-len('.dpkg-new')], flat)
 		elif templatefile.endswith('.dpkg-dist'):
 			addFileByPath(templatefile[:-len('.dpkg-dist')], flat)
-		sys.stdout.write('.')
+		print('.', end='')
 		sys.stdout.flush()
 	print('done.')
 
 
 def checkTransactionFile():
-	sys.stdout.write('Collecting output transaction-file-check: ')
+	print('Collecting output transaction-file-check: ', end='')
 	sys.stdout.flush()
 
 	transactionCheck = tempfile.TemporaryFile(prefix='univention-support-info.')
@@ -1550,10 +1554,10 @@ def checkTransactionFile():
 					cld = (tid - tac)  # counter line diff
 					if cld < 0:  # id repeat
 						cld = (cld * -1)
-						print(' REPEATED (%s)' % (cld), file=transactionCheck)
+						print(' REPEATED (%s)' % (cld,), file=transactionCheck)
 						tac = (tid + cld)
 					elif cld > 0:  # id skip
-						print(' SKIPPED (%s)' % (cld), file=transactionCheck)
+						print(' SKIPPED (%s)' % (cld,), file=transactionCheck)
 						tac = (tid + 1)
 
 				tlc += 1
@@ -1569,8 +1573,12 @@ def collectCommandData():
 	# add pvdisplay,vgdisplay,lvdisplay (BUG 35075)
 	# add sharesec --view-all (BUG 44376)
 	commands = {
-		'hostname-f': ('hostname', '--fqdn', ), 'ifconfig-a': ('ifconfig', '-v', '-a', ),
-		'iptables-L_filter': ('iptables', '-L', '-n', '-v', '-t', 'filter', ),
+		'hostname-f':
+			('hostname', '--fqdn', ),
+		'ifconfig-a':
+			('ifconfig', '-v', '-a', ),
+		'iptables-L_filter':
+			('iptables', '-L', '-n', '-v', '-t', 'filter', ),
 		'iptables-L_nat':
 			('iptables', '-L', '-n', '-v', '-t', 'nat', ),
 		'iptables-L_mangle':
@@ -1651,14 +1659,22 @@ def collectCommandData():
 		if ucr.get('samba4/role', None):
 			# Run only S4
 			commands.update({
-				'samba-tool-drs-showrepl': ('samba-tool', 'drs', 'showrepl', ),
-				'samba-tool-domain-level-show': ('samba-tool', 'domain', 'level', 'show'),
-				'samba-tool-domain-passwordsettings': ('samba-tool', 'domain', 'passwordsettings', 'show'),
-				'testparm-samba4': (('testparm.samba4', '-s', '-vvv'), True),
-				'samba-tool-fsmo-show': ('samba-tool', 'fsmo', 'show'),
-				'univention-s4connector-list-rejected': ('univention-s4connector-list-rejected', ),
-				'samba-tool-processes': ('samba-tool', 'processes'),
-				'check-essential-dns-records': ('/usr/share/univention-samba4/scripts/check_essential_samba4_dns_records.sh',),
+				'samba-tool-drs-showrepl':
+					('samba-tool', 'drs', 'showrepl', ),
+				'samba-tool-domain-level-show':
+					('samba-tool', 'domain', 'level', 'show'),
+				'samba-tool-domain-passwordsettings':
+					('samba-tool', 'domain', 'passwordsettings', 'show'),
+				'testparm-samba4':
+					(('testparm.samba4', '-s', '-vvv'), True),
+				'samba-tool-fsmo-show':
+					('samba-tool', 'fsmo', 'show'),
+				'univention-s4connector-list-rejected':
+					('univention-s4connector-list-rejected', ),
+				'samba-tool-processes':
+					('samba-tool', 'processes'),
+				'check-essential-dns-records':
+					('/usr/share/univention-samba4/scripts/check_essential_samba4_dns_records.sh',),
 			})
 			# >= Samba4 RC (UCS 3.1)
 			if ucr.get('version/version') >= '3.1':
@@ -1673,23 +1689,23 @@ def collectCommandData():
 	if ucr.get('version/version') >= '4.2':
 		commands.update({'journalctl': ('journalctl', '--since=yesterday', ), 'hostnamectl-status': ('hostnamectl', 'status', ), 'univention-app-info': ('univention-app', 'info', ), })
 
-	sys.stdout.write('Collecting command output: ')
+	print('Collecting command output: ', end='')
 	sys.stdout.flush()
 	for commandName in commands:
 		command = commands[commandName]
-		if type(command[0]) == tuple:
+		if isinstance(command[0], tuple):
 			stdout = executeCommand(commandName, command[0], command[1])
 		else:
 			stdout = executeCommand(commandName, command)
 
 		addFile('info/' + commandName, len(stdout), StringIO(stdout))
-		sys.stdout.write('.')
+		print('.', end='')
 		sys.stdout.flush()
 	print('done.')
 
 
 def univentionSystemInfo():
-	sys.stdout.write('Collecting hardware information: ')
+	print('Collecting hardware information: ', end='')
 	sys.stdout.flush()
 	manu = executeCommand('dmidecode', ('dmidecode', '-s', 'system-manufacturer'))
 	product = executeCommand('dmidecode', ('dmidecode', '-s', 'system-product-name'))
@@ -1800,7 +1816,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 				logs[filename] = {}
 			logs[filename][number] = gzipped
 
-	sys.stdout.write('Collecting logfiles: ')
+	print('Collecting logfiles: ', end='')
 	sys.stdout.flush()
 	for logname in sorted(logs):
 		logLinecount = 0
@@ -1827,25 +1843,25 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 				# last 4 bytes of a gzip file contain the size of the original (uncompressed) input data modulo 2^32.
 				try:
 					logfile.seek(-4, os.SEEK_END)
-				except IOError as e:
-					sys.stdout.write('\n\nFilename: %s' % path + GzipSuffix)
-					raise IOError(e)
+				except IOError as exc:
+					print('\n\nFilename: %s%s: %s' % (path, GzipSuffix, exc), end='')
+					raise
 				fileBytes = U32(gzip.read32(logfile))
 				logfile.close()
-				fileLinecount = int(subprocess.Popen('zcat -f %s | wc -l' % (path + GzipSuffix), stdout=subprocess.PIPE, shell=True).stdout.read().strip())
+				fileLinecount = int(subprocess.Popen('zcat -f %s%s | wc -l' % (path, GzipSuffix,), stdout=subprocess.PIPE, shell=True).stdout.read().strip())
 			else:
 				# addFile may calculate the size for us
 				fileBytes = None
 				fileLinecount = int(subprocess.Popen(('wc', '-l', path), stdout=subprocess.PIPE).stdout.read().strip().split()[0])
 			logLinecount += fileLinecount
 			# if gzipped:
-			# 	sys.stdout.write( '"%s", "%s", "%s" -> ' % (path + GzipSuffix, fileBytes, fileLinecount) )
+			# 	print('"%s", "%s", "%s" -> ' % (path + GzipSuffix, fileBytes, fileLinecount), end='')
 			# else:
-			# 	sys.stdout.write( '"%s", "%s", "%s" -> ' % (path, fileBytes, fileLinecount) )
+			# 	print('"%s", "%s", "%s" -> ' % (path, fileBytes, fileLinecount), end='')
 
 			if fileLinecount <= 0:
 				# skip logname if empty
-				# print 'ERROR: Empty file? "%s"' % path
+				# print('ERROR: Empty file? "%s"' % path)
 				continue
 
 			nonemptyNumber += 1
@@ -1865,10 +1881,10 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 			# Add file to archive ...
 			if options.flatStruct:
 				addFile('files/' + '%s_%d' % (logname.strip('/').replace('/', '_'), nonemptyNumber, ), fileBytes, logfile)
-				# print 'Added as "%s_%d"' % (logname.strip('/').replace('/', '_'), nonemptyNumber, )
+				# print('Added as "%s_%d"' % (logname.strip('/').replace('/', '_'), nonemptyNumber, ))
 			else:
 				addFile('files/' + '%s_%d' % (logname.strip('/'), nonemptyNumber, ), fileBytes, logfile)
-				# print 'Added as "%s_%d"' % (logname.strip('/'), nonemptyNumber, )
+				# print('Added as "%s_%d"' % (logname.strip('/'), nonemptyNumber, ))
 			logfile.close()
 
 			if not options.fullLogs:
@@ -1881,7 +1897,7 @@ def rotatedLogs(regEx, DefaultMaxLineCount, options):
 					logger.debug("EXCEPTION: {}".format(ex))
 					continue
 
-		sys.stdout.write('.')
+		print('.', end='')
 		sys.stdout.flush()
 	print('done.')
 
@@ -1915,7 +1931,7 @@ def tryDelete(filename):
 
 
 def gpg(archiveFileName):
-	sys.stdout.write("Encrypting file..."),
+	print("Encrypting file...", end=''),
 	sys.stdout.flush()
 	keyringFileName = tempfile.mkstemp(prefix='univention-support-info-keyring.', suffix='.gpg')[1]
 	secringFileName = tempfile.mkstemp(prefix='univention-support-info-secring.', suffix='.gpg')[1]
@@ -1939,11 +1955,11 @@ def gpg(archiveFileName):
 	# Popen is a function above which injects the Input to the called process as "human" input
 	(exitcode, stdout, stderr, ) = Popen(gpgImport, Input=keyData)
 	if exitcode:
-		sys.stdout.write("gpg-import failed with %s" % (exitcode))
+		print("gpg-import failed with %s" % (exitcode,), end='')
 		if stdout:
-			sys.stdout.write("stdout: %s" % repr(stdout))
+			print("stdout: %s" % repr(stdout), end='')
 		if stderr:
-			sys.stdout.write("stderr: %s" % repr(stderr))
+			print("stderr: %s" % repr(stderr), end='')
 		tryDelete(keyringFileName)
 		tryDelete(keyringFileName + '~')
 		tryDelete(secringFileName)
@@ -1952,11 +1968,11 @@ def gpg(archiveFileName):
 		return
 	(exitcode, stdout, stderr, ) = Popen(gpgEncrypt)
 	if exitcode:
-		sys.stdout.write("gpg-encrypt failed with %s" % (exitcode))
+		print("gpg-encrypt failed with %s" % (exitcode,), end='')
 		if stdout:
-			sys.stdout.write("stdout: " % repr(stdout))
+			print("stdout: " % repr(stdout), end='')
 		if stderr:
-			sys.stdout.write("stderr: %s" % repr(stderr))
+			print("stderr: %s" % repr(stderr), end='')
 		tryDelete(keyringFileName)
 		tryDelete(keyringFileName + '~')
 		tryDelete(secringFileName)
@@ -1968,7 +1984,7 @@ def gpg(archiveFileName):
 	tryDelete(secringFileName)
 	tryDelete(trustdbFileName)
 	os.chmod(gpgFileName, stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
-	sys.stdout.write("done.")
+	print("done.", end='')
 	return gpgFileName
 
 
@@ -2003,7 +2019,7 @@ def prepareEnvironment():
 		f = open(os.path.join(env['HOME'], '.toprc'), 'w')
 		f.write(toprc)
 		f.close()
-		os.mkdir("%s/.gnupg" % (env['HOME']))
+		os.mkdir("%s/.gnupg" % (env['HOME'],))
 	except (OSError, IOError, ):
 		pass
 
@@ -2031,7 +2047,7 @@ def main(options):
 
 	# USI Version
 	addFile('info/usi_version', len(usiVersion), StringIO(usiVersion))
-	sys.stdout.write("USI Archiver Version \033[1m%s\033[0m\n" % (usiVersion))
+	print("USI Archiver Version \033[1m%s\033[0m\n" % (usiVersion,), end='')
 
 	# Check Samba Version
 	if executeCommand('samba4-pdc-dn', (_ldapsearchCommand(), '-xLLL', '(&(univentionService=Samba 4)(objectClass=univentionDomainController))', 'dn')):
@@ -2054,7 +2070,7 @@ def main(options):
 		rotatedLogs(".*", 1000, options)
 	else:
 		logDepth = 2
-		rotatedLogs(r"((log\.)?|(\.log)?(\.[0-%s](\.gz)?)?$)" % (logDepth), 1000, options)
+		rotatedLogs(r"((log\.)?|(\.log)?(\.[0-%s](\.gz)?)?$)" % (logDepth,), 1000, options)
 	checkEntryUUID()
 	# Place new calls above this line
 
@@ -2062,20 +2078,20 @@ def main(options):
 	addFile('info/usi_runtime.log', None, usilog)
 
 	closeArchive()
-	sys.stdout.write("Data collection completed.\n")
+	print("Data collection completed.\n", end='')
 	sys.stdout.flush()
 
 	if options.encrypt:
 		gpgArchiveFileName = gpg(archiveFileName)
 		if gpgArchiveFileName:
-			sys.stdout.write("The encrypted data can be found here:\n\t%s\n" % (gpgArchiveFileName))
+			print("The encrypted data can be found here:\n\t%s\n" % (gpgArchiveFileName,), end='')
 		else:
-			sys.stdout.write("WARNING: The data could not be encrypted!")
+			print("WARNING: The data could not be encrypted!", end='')
 		print()
-		sys.stdout.write("The unencrypted data can be found here:")
+		print("The unencrypted data can be found here:", end='')
 	else:
-		sys.stdout.write("The data can be found here:")
-	sys.stdout.write("\t%s" % (archiveFileName))
+		print("The data can be found here:", end='')
+	print("\t%s" % (archiveFileName,), end='')
 	sys.stdout.flush()
 	cleanup()
 
