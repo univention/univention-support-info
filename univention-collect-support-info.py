@@ -1,17 +1,19 @@
 #!/usr/bin/python2.7
 
-import os
-import sys
-import shutil
-import email
-import smtplib
-import argparse
-import StringIO
-import lxml.html
-import urlparse
-import subprocess
+from __future__ import print_function
 
+import argparse
+import email
+import os
+import shutil
+import smtplib
+import subprocess
+import sys
+
+import lxml.html
 import requests
+import StringIO
+import urlparse
 
 USI = 'https://updates.software-univention.de/download/scripts/univention-support-info'
 USI_SCRIPT = '/usr/share/univention-support-info/usi.py'
@@ -52,11 +54,11 @@ class Main(object):
 			if etag:
 				with open('/usr/share/univention-support-info/.etag', 'w') as fd:
 					fd.write(etag)
-			print >> sys.stderr, 'Collected new Univention Support Info'
+			print('Collected new Univention Support Info', file=sys.stderr)
 		elif response.status_code != 304:
-			print >> sys.stderr, 'Failed to download USI script. Trying to use cached one!'
+			print('Failed to download USI script. Trying to use cached one!', file=sys.stderr)
 		else:
-			print >> sys.stderr, 'Using cached Univention Support Info'
+			print('Using cached Univention Support Info', file=sys.stderr)
 
 	def run_script(self):
 		ceep = True
@@ -68,7 +70,7 @@ class Main(object):
 			cmd.append('--debug')
 		if not self.args.quite:
 			cmd.append('--verbose')
-		print >> sys.stderr, 'Starting Univention Support Info...'
+		print('Starting Univention Support Info...', file=sys.stderr)
 		sys.stderr.flush()
 
 		output = ""
@@ -88,16 +90,15 @@ class Main(object):
 		for i, line in enumerate(output):
 			if 'univention-support-info-' in line:
 				archives.append(line.split()[-1])
-		# import pdb; pdb.set_trace()
 		if not archives:
-			print >> sys.stderr, 'No archive could be created!'
+			print('No archive could be created!', file=sys.stderr)
 			return 1
-		# print >> sys.stderr, 'Univention Support Info created %r.' % (archives,)
+		# print('Univention Support Info created %r.' % (archives,), file=sys.stderr)
 
 		# returncode = 0
 		try:
 			if self.args.folder:
-				print >> sys.stderr, 'Copying archives to %s...' % (self.args.folder,)
+				print('Copying archives to %s...' % (self.args.folder,), file=sys.stderr)
 				for archive in archives:
 					try:
 						target = os.path.join(self.args.folder, os.path.basename(archive))
@@ -105,27 +106,27 @@ class Main(object):
 						os.chmod(target, 0o600)
 						ceep = False
 					except BaseException as exc:
-						print >> sys.stderr, 'Could not copy a backup of the archives: %s' % (exc,)
+						print('Could not copy a backup of the archives: %s' % (exc,), file=sys.stderr)
 						returncode = 1
 
 			if self.args.upload_to_univention:
-				print >> sys.stderr, 'Uploading archive to Univention...'
+				print('Uploading archive to Univention...', file=sys.stderr)
 				try:
 					archive = archives[0]  # will be the encrypted one
 					archive_id = self.upload_archive(archive)
 				except BaseException as exc:
-					print >> sys.stderr, 'Could not upload archive: %s' % (exc,)
+					print('Could not upload archive: %s' % (exc,), file=sys.stderr)
 					keep = True
 					return 1
 
-				print >> sys.stderr, 'Archive has been uploaded with ID %s' % (archive_id,)
+				print('Archive has been uploaded with ID %s' % (archive_id,), file=sys.stderr)
 
 				if self.args.sender and '@' in self.args.sender:
-					print >> sys.stderr, 'Sending mail to Univention...'
+					print('Sending mail to Univention...', file=sys.stderr)
 					try:
 						self.send_mail(archive_id)
 					except BaseException as exc:
-						print >> sys.stderr, 'The mail could not be send: %s' % (exc,)
+						print('The mail could not be send: %s' % (exc,), file=sys.stderr)
 						returncode = 1
 			else:
 				keep = True
