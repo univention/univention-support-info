@@ -49,8 +49,17 @@ import threading
 import time
 from distutils.spawn import find_executable
 
-import urllib2
-from cStringIO import StringIO
+try:
+	from urllib2 import URLError, urlopen
+except ImportError:
+	from urllib.error import URLError
+	from urllib.request import urlopen
+
+try:
+	from cStringIO import StringIO
+	from cStringIO import StringIO as BytesIO
+except ImportError:
+	from io import BytesIO, StringIO
 
 usiVersion = '66'
 
@@ -1152,7 +1161,8 @@ toprc = '\n'.join((
 
 # ignore apt's "API not stable yet" warning
 import warnings  # noqa: E402
-warnings.filterwarnings("ignore", category=FutureWarning, append=True)  # noqa: I003
+
+warnings.filterwarnings("ignore", category=FutureWarning, append=True)
 import apt  # noqa: E402
 
 try:
@@ -1183,20 +1193,22 @@ hostname = socket.gethostname()
 
 
 class Command(object):
-	def __init__(self, cmd, Input):
+	def __init__(self, cmd, stdin):
 		self.cmd = cmd
-		self.Input = Input
+		self.stdin = stdin
 		self.process = None
-		self.outData = ""
-		self.errData = ""
+		self.stdout = ""
+		self.stderr = ""
 
 	def run(self, timeout):
 		def target():
 			try:
 				self.process = subprocess.Popen(self.cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True, env=env)
-				(self.outData, self.errData) = self.process.communicate(input=self.Input)
+				(self.stdout, self.stderr) = self.process.communicate(input=self.stdin)
+				if str is not bytes:
+					(self.stdout, self.stderr) = (self.stdout.decode('UTF-8', 'replace'), self.stderr.decode('UTF-8', 'replace'))
 			except (OSError, IOError) as ex:
-				self.outData = "Could not execute %r: %r" % (self.cmd, ' '.join(map(str, ex.args)))
+				self.stdout = "Could not execute %r: %r" % (self.cmd, ' '.join(map(str, ex.args)))
 
 		thread = threading.Thread(target=target)
 		thread.start()
@@ -1206,21 +1218,21 @@ class Command(object):
 			self.process.terminate()
 			thread.join()
 		if self.process:
-			return (self.process.returncode, self.outData, self.errData)
+			return (self.process.returncode, self.stdout, self.stderr)
 		else:
-			return (1, self.outData, self.errData)
+			return (1, self.stdout, self.stderr)
 
 
-def Popen(CommandTuple, Input=None, timeout=30):
-	command = Command(CommandTuple, Input)
+def Popen(CommandTuple, stdin=None, timeout=30):
+	command = Command(CommandTuple, stdin)
 	logger.debug("running Command '{}'...".format(repr(CommandTuple)))
-	Result = command.run(timeout)
-	if Result[0] != 0:
-		print("Command: %r\nResult: %r" % (CommandTuple, Result), file=usilog)
-		if Result[0] == -15:
+	result = command.run(timeout)
+	if result[0] != 0:
+		print("Command: %r\nResult: %r" % (CommandTuple, result), file=usilog)
+		if result[0] == -15:
 			print("Process has been terminated [timeout]", file=usilog)
 		print("", file=usilog)
-	return Result
+	return result
 
 
 def _ldapsearchCommand():
@@ -1407,7 +1419,7 @@ def simpleFiles(flat):
 def licenseObject():
 	''' Get license object from ldap (cn=license) '''
 	stdout = executeCommand('univention-license-object', (_ldapsearchCommand(), '-x', '-b', 'cn=license,cn=univention,' + ucr.get('ldap/base')))
-	addFile('info/univention-license-object', len(stdout), StringIO(stdout))
+	addFile('info/univention-license-object', len(stdout), BytesIO(stdout))
 
 
 def checkMaintenance():
@@ -1419,7 +1431,7 @@ def checkMaintenance():
 		# check depending on License
 		try:
 			maint_url = "http://updates.software-univention.de/download/ucs-maintenance/" + ucs_ver + ".yaml"
-			data = urllib2.urlopen(maint_url).read()
+			data = urlopen(maint_url).read()
 			maint_info = dict((k.strip(), v.strip()) for k, v in (line.split(':', 1) for line in data.split("\n") if line))
 
 			tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
@@ -1433,7 +1445,7 @@ def checkMaintenance():
 				sys.stdout.flush()
 				print(miMsg, file=tmpf)
 				addFile('info/maintenance', None, tmpf)
-		except (urllib2.URLError, IOError) as innerex:
+		except (URLError, IOError) as innerex:
 			tmpf = tempfile.TemporaryFile(prefix='univention-support-info.')
 			print("Warn: Can't reach univention server - product maintenance undetermined [%s]" % (innerex,))
 			sys.stdout.flush()
@@ -1952,8 +1964,8 @@ def gpg(archiveFileName):
 	)
 	gpgImport = gpgBase + ('--import',)
 	gpgEncrypt = gpgBase + ('--recipient', fingerprint, '--encrypt', archiveFileName,)
-	# Popen is a function above which injects the Input to the called process as "human" input
-	(exitcode, stdout, stderr, ) = Popen(gpgImport, Input=keyData)
+	# Popen is a function above which injects the input to the called process as "human" input
+	(exitcode, stdout, stderr, ) = Popen(gpgImport, keyData)
 	if exitcode:
 		print("gpg-import failed with %s" % (exitcode,), end='')
 		if stdout:
