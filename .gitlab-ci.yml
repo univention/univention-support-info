@@ -17,7 +17,7 @@ stages:
 prepare:
   stage: prepare
   script:
-    - sed -rne "s/^usiVersion\s*=\s*('\d+')/USIVER=\2/" univention-support-info >variables.env
+    - sed -rne "s/^usiVersion\s*=\s*('\d+')/USIVER=\1/p" univention-support-info >variables.env
   artifacts:
     reports:
       dotenv: variables.env
