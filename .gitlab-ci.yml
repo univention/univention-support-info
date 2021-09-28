@@ -9,10 +9,10 @@ stages:
 prepare:
   stage: prepare
   script:
-    - sed -rne "s/^usiVersion\s*=\s*('\d+')/USIVER=\1/p" univention-support-info >variables.env
+    - sed -rne "s/^usiVersion\s*=\s*('\d+')/USIVER=\1/p" univention-support-info >.env
   artifacts:
     reports:
-      dotenv: variables.env
+      dotenv: .env
     paths:
       - univention-support-info
 
@@ -56,13 +56,16 @@ deploy:
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       when: manual
+      allow_failure: true
+  dependencies:
+    - prepare
   needs:
     - job: prepare
       artifacts: true
   script:
-    - install -m 755 univention-support-info "$MIRROR/$BASE/versions/univention-support-info.$USIVER"
-    - ln -snf "versions/univention-support-info.$USIVER" "$MIRROR/$BASE/univention-support-info"
-    - sudo update_mirror.sh "$BASE"
+    - install -m 755 univention-support-info "$MIRROR/$BASE/versions/univention-support-info.${USIVER:?}"
+    - ln -snf "versions/univention-support-info.${USIVER:?}" "$MIRROR/$BASE/univention-support-info"
+    - sudo update_mirror.sh -v "$BASE"
   environment:
     name: production
     url: https://updates.software-univention.de/download/scripts/
