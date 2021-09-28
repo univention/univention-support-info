@@ -12,20 +12,23 @@ stages:
   - test
   - build
 
-before_script:
+.pip:
+  script:
   - python -V  # Print out python version for debugging
   - pip install virtualenv
   - virtualenv venv
-  - source venv/bin/activate
+  - . venv/bin/activate
 
 test:
   stage: test
+  extends: .pip
   script:
     - pip install flake8
     - flake8
 
 run:
   stage: build
+  extends: .pip
   script:
     - pip install twine
     - python setup.py sdist bdist_wheel
