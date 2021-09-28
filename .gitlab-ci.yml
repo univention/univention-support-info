@@ -10,10 +10,12 @@ prepare:
   stage: prepare
   script:
     - sed -rne "s/^usiVersion\s*=\s*('\d+')/USIVER=\1/p" univention-support-info >.env
+    - cat -n .env
   artifacts:
     reports:
       dotenv: .env
     paths:
+      - .env
       - univention-support-info
 
 .pip:
@@ -63,6 +65,7 @@ deploy:
     - job: prepare
       artifacts: true
   script:
+    - . .env
     - install -m 755 univention-support-info "$MIRROR/$BASE/versions/univention-support-info.${USIVER:?}"
     - ln -snf "versions/univention-support-info.${USIVER:?}" "$MIRROR/$BASE/univention-support-info"
     - sudo update_mirror.sh -v "$BASE"
