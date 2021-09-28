@@ -9,8 +9,20 @@ cache:
     - venv/
 
 stages:
+  - prepare
   - test
   - build
+  - deploy
+
+prepare:
+  stage: prepare
+  script:
+    - sed -rne "s/^usiVersion\s*=\s*('\d+')/USIVER=\2/" univention-support-info >variables.env
+  artifacts:
+    reports:
+      dotenv: variables.env
+    paths:
+      - univention-support-info
 
 .pip:
   script:
@@ -33,3 +45,26 @@ run:
     - pip install twine
     - python setup.py sdist bdist_wheel
     - TWINE_CERT=$KNUT_CA TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --repository-url ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/pypi dist/*
+
+deploy:
+  stage: deploy
+  resource_group: prod
+  tags:
+    - omar
+  variables:
+    GIT_STRATEGY: none
+    MIRROR: /var/univention/buildsystem2/mirror
+    BASE: ftp/download/scripts
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  needs:
+    - job: prepare
+      artifacts: true
+  script:
+    - install -m 755 univention-support-info "$MIRROR/$BASE/versions/univention-support-info.$USIVER"
+    - ln -snf "versions/univention-support-info.$USIVER" "$MIRROR/$BASE/univention-support-info"
+    - sudo update_mirror.sh "$BASE"
+  environment:
+    name: production
+    url: https://updates.software-univention.de/download/scripts/
