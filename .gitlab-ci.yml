@@ -8,6 +8,10 @@ cache:
     - .cache/pip
     - venv/
 
+stages:
+  - test
+  - build
+
 before_script:
   - python -V  # Print out python version for debugging
   - pip install virtualenv
@@ -15,11 +19,13 @@ before_script:
   - source venv/bin/activate
 
 test:
+  stage: test
   script:
     - pip install flake8
     - flake8
 
 run:
+  stage: build
   script:
     - pip install twine
     - python setup.py sdist bdist_wheel
