@@ -1,6 +1,5 @@
 #!/bin/bash
 set -x
-SVN_DIR=$( pwd )
 
 # add path to environment PATH
 if ! grep  -Exq "PATH=.*(~|$HOME)/git/univention-support-info/usi-check.*" "$HOME/.bash_local"; then
